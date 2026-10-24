@@ -68,9 +68,70 @@ export function ZonesTab() {
 
   const sel = selWeek ? chart.find((r) => r.week === selWeek) : null;
 
+  // Live progress vs plan (uses actually-logged runs).
+  const progress = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const firstDate = workouts.length
+      ? [...workouts].sort((a, b) => a.date.localeCompare(b.date))[0].date
+      : today;
+    const notStarted = today < firstDate;
+    const due = workouts.filter((w) => w.date <= today && w.type !== 'RACE');
+    const plannedToDate = due.reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
+    const completed = due.filter((w) => w.completed).length;
+    const actualTotal = synced.reduce((s, r) => s + r.distance_meters, 0) / 1000;
+    const onTrack = plannedToDate > 0 ? Math.round((actualTotal / plannedToDate) * 100) : 0;
+    return { plannedToDate, actualTotal, completed, due: due.length, onTrack, notStarted, firstDate };
+  }, [workouts, synced]);
+
   return (
     <div className="safe-top px-5 pb-nav">
       <h1 className="text-3xl font-extrabold tracking-tight">Stats</h1>
+
+      {/* Live progress vs plan */}
+      <div className="rise card mt-4 p-4">
+        {progress.notStarted ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">Progress vs plan</span>
+              <span className="rounded-full bg-mint/10 px-2.5 py-0.5 text-xs font-bold text-mint">
+                Starts soon
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-dim">
+              Your plan begins{' '}
+              <b className="text-white">
+                {new Date(progress.firstDate).toLocaleDateString(undefined, {
+                  weekday: 'long', day: 'numeric', month: 'long',
+                })}
+              </b>
+              . Logged runs and on-track progress will appear here as you train.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">Progress vs plan</span>
+              <span
+                className="tabular rounded-full px-2.5 py-0.5 text-xs font-bold"
+                style={{
+                  color: progress.onTrack >= 90 ? '#7B8CFF' : progress.onTrack >= 60 ? '#FBBF24' : '#8C8C9E',
+                  background: progress.onTrack >= 90 ? 'rgba(123,140,255,0.14)' : progress.onTrack >= 60 ? 'rgba(251,191,36,0.14)' : 'rgba(140,140,158,0.14)',
+                }}
+              >
+                {progress.onTrack}% on track
+              </span>
+            </div>
+            <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-border">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, progress.onTrack)}%`, background: 'linear-gradient(90deg,#6366F1,#A855F7)' }} />
+            </div>
+            <div className="mt-2 flex justify-between text-[11px] text-dim">
+              <span className="tabular">{progress.actualTotal.toFixed(0)} km logged</span>
+              <span className="tabular">{progress.completed}/{progress.due} sessions done</span>
+              <span className="tabular">{progress.plannedToDate.toFixed(0)} km planned</span>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* VDOT + predicted */}
       <div className="rise mt-5 grid grid-cols-2 gap-3">

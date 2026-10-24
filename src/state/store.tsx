@@ -20,7 +20,7 @@ import {
   isConfigured,
 } from '../lib/supabaseClient';
 import { normalizeHealthPayload } from '../lib/workoutMatcher';
-import { toISODate } from '../lib/format';
+import { toISODate, mondayIndex, parseISODate } from '../lib/format';
 
 interface StoreValue {
   profile: Profile;
@@ -38,6 +38,7 @@ interface StoreValue {
   syncHealth: () => Promise<void>;
   simulateRun: (distanceKm: number, durationSeconds: number, dateISO: string) => Promise<void>;
   markComplete: (workoutId: string, completed: boolean) => void;
+  reschedule: (workoutId: string, dateISO: string) => void;
   relink: (externalId: string, workoutId: string | null) => void;
   refreshSupabaseStatus: () => void;
 }
@@ -202,6 +203,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [workouts, synced, commit]
   );
 
+  const reschedule = useCallback(
+    (workoutId: string, dateISO: string) => {
+      const next = workouts.map((w) =>
+        w.id === workoutId
+          ? { ...w, date: dateISO, dayOfWeek: mondayIndex(parseISODate(dateISO)) }
+          : w
+      );
+      commit(next, synced);
+    },
+    [workouts, synced, commit]
+  );
+
   const relink = useCallback(
     (externalId: string, workoutId: string | null) => {
       const nextSynced = synced.map((r) =>
@@ -238,6 +251,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     syncHealth,
     simulateRun,
     markComplete,
+    reschedule,
     relink,
     refreshSupabaseStatus,
   };

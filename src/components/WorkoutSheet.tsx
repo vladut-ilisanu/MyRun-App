@@ -1,4 +1,4 @@
-import { X, Check, Link2, Unlink, Sparkles } from 'lucide-react';
+import { X, Check, Link2, Unlink, Sparkles, CalendarClock } from 'lucide-react';
 import type { PlannedWorkout, SyncedWorkout } from '../types';
 import { formatDuration, formatPaceRange, metersToKm, formatPace } from '../lib/format';
 import { segmentColor, typeGradient, typeLabel, hexA } from './ui';
@@ -10,6 +10,7 @@ interface Props {
   onClose: () => void;
   onToggleComplete: (completed: boolean) => void;
   onRelink: (externalId: string, workoutId: string | null) => void;
+  onReschedule?: (dateISO: string) => void;
 }
 
 export function WorkoutSheet({
@@ -18,6 +19,7 @@ export function WorkoutSheet({
   onClose,
   onToggleComplete,
   onRelink,
+  onReschedule,
 }: Props) {
   const linked = weekRuns.find((r) => r.external_id === workout.matched_synced_id);
   const [g1, g2] = typeGradient[workout.type];
@@ -147,6 +149,27 @@ export function WorkoutSheet({
                   ))
               )}
             </div>
+          )}
+
+          {/* Reschedule */}
+          {onReschedule && workout.type !== 'RACE' && (
+            <>
+              <div className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim">
+                Reschedule
+              </div>
+              <label className="card flex items-center justify-between p-4">
+                <span className="flex items-center gap-2 text-sm">
+                  <CalendarClock size={16} className="text-mint" /> Move to
+                </span>
+                <input
+                  type="date"
+                  value={workout.date}
+                  onChange={(e) => e.target.value && onReschedule(e.target.value)}
+                  className="rounded-lg bg-bg px-2 py-1.5 text-sm"
+                  style={{ border: '1px solid #272734' }}
+                />
+              </label>
+            </>
           )}
         </div>
 

@@ -20,7 +20,7 @@ import type {
   WorkoutSegment,
   WorkoutType,
 } from '../types';
-import { addDays, toISODate, weekStartMonday, daysBetween } from './format';
+import { addDays, toISODate, weekStartMonday, daysBetween, nextMonday, mondayIndex, parseISODate } from './format';
 import {
   computeTrainingPaces,
   raceDistanceMeters,
@@ -73,8 +73,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 /** Compute the number of training weeks between today and the race week. */
 export function weeksUntilRace(goalRaceDate: string, today = toISODate(new Date())): number {
   const raceMon = weekStartMonday(goalRaceDate);
-  const todayMon = weekStartMonday(today);
-  const weeks = Math.round(daysBetween(todayMon, raceMon) / 7) + 1; // inclusive of race week
+  const startMon = nextMonday(today); // plan starts the upcoming Monday, never in the past
+  const weeks = Math.round(daysBetween(startMon, raceMon) / 7) + 1; // inclusive of race week
   return clamp(weeks, 8, 24);
 }
 
@@ -151,11 +151,14 @@ export function generatePlan(profile: Profile): GeneratedPlan {
   for (const wc of weeks) {
     const weekMon = addDays(firstMon, (wc.week - 1) * 7);
 
-    // ----- race week: special sequence -----
+    // ----- race week: special sequence, anchored to the real race date -----
     if (wc.isRace) {
-      pushEasy(workouts, wc, weekMon, 1, 4000, z('easy'), 'Pre-race shakeout to stay loose.');
-      pushActivation(workouts, wc, weekMon, 3, z('easy'), mpBand);
-      pushRace(workouts, wc, weekMon, longRunIdx, mpBand, profile.goalRaceName);
+      const raceIdx = mondayIndex(parseISODate(profile.goalRaceDate)); // 0=Mon..6=Sun
+      const actIdx = Math.max(0, raceIdx - 2); // strides ~2 days out
+      const shakeIdx = Math.max(0, raceIdx - 4); // easy shakeout earlier in the week
+      pushEasy(workouts, wc, weekMon, shakeIdx, 4000, z('easy'), 'Pre-race shakeout to stay loose.');
+      if (actIdx !== shakeIdx) pushActivation(workouts, wc, weekMon, actIdx, z('easy'), mpBand);
+      pushRace(workouts, wc, weekMon, raceIdx, mpBand, profile.goalRaceName);
       continue;
     }
 

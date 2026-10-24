@@ -73,6 +73,14 @@ export function weekStartMonday(iso: string): string {
   return toISODate(d);
 }
 
+/** The Monday on or after `iso` (so a plan never starts in the past). */
+export function nextMonday(iso: string): string {
+  const d = parseISODate(iso);
+  const idx = mondayIndex(d); // 0 = Monday
+  if (idx !== 0) d.setDate(d.getDate() + (7 - idx));
+  return toISODate(d);
+}
+
 export function daysBetween(fromISO: string, toISO: string): number {
   const a = parseISODate(fromISO).getTime();
   const b = parseISODate(toISO).getTime();

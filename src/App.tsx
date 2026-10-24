@@ -1,16 +1,18 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
-import { Home, CalendarRange, Gauge, Settings } from 'lucide-react';
+import { Home, CalendarDays, Gauge, BookOpen, Settings } from 'lucide-react';
 import { TodayTab } from './tabs/TodayTab';
-import { PlanTab } from './tabs/PlanTab';
+import { CalendarTab } from './tabs/CalendarTab';
 import { ZonesTab } from './tabs/ZonesTab';
+import { KnowledgeTab } from './tabs/KnowledgeTab';
 import { SetupTab } from './tabs/SetupTab';
 import { Onboarding } from './components/Onboarding';
 import { useStore } from './state/store';
 
 const tabs = [
   { to: '/today', label: 'Today', icon: Home },
-  { to: '/plan', label: 'Plan', icon: CalendarRange },
-  { to: '/zones', label: 'Stats', icon: Gauge },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/stats', label: 'Stats', icon: Gauge },
+  { to: '/guide', label: 'Guide', icon: BookOpen },
   { to: '/setup', label: 'Setup', icon: Settings },
 ];
 
@@ -26,29 +28,27 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<TodayTab />} />
-        <Route path="/plan" element={<PlanTab />} />
-        <Route path="/zones" element={<ZonesTab />} />
+        <Route path="/calendar" element={<CalendarTab />} />
+        <Route path="/plan" element={<Navigate to="/calendar" replace />} />
+        <Route path="/stats" element={<ZonesTab />} />
+        <Route path="/zones" element={<Navigate to="/stats" replace />} />
+        <Route path="/guide" element={<KnowledgeTab />} />
         <Route path="/setup" element={<SetupTab />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
 
-      <nav className="tabbar flex justify-around px-3 pt-2">
+      <nav className="tabbar flex justify-around px-2 pt-2">
         {tabs.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className="press flex-1">
             {({ isActive }) => (
               <div className="flex flex-col items-center gap-1 py-1">
                 <div
-                  className="flex h-9 w-14 items-center justify-center rounded-full transition-colors"
-                  style={{
-                    backgroundColor: isActive ? 'rgba(123,140,255,0.14)' : 'transparent',
-                  }}
+                  className="flex h-9 w-12 items-center justify-center rounded-full transition-colors"
+                  style={{ backgroundColor: isActive ? 'rgba(123,140,255,0.16)' : 'transparent' }}
                 >
-                  <Icon size={21} color={isActive ? '#7B8CFF' : '#7A7A86'} strokeWidth={2.4} />
+                  <Icon size={20} color={isActive ? '#7B8CFF' : '#7A7A86'} strokeWidth={2.4} />
                 </div>
-                <span
-                  className="text-[10px] font-semibold"
-                  style={{ color: isActive ? '#7B8CFF' : '#7A7A86' }}
-                >
+                <span className="text-[10px] font-semibold" style={{ color: isActive ? '#7B8CFF' : '#7A7A86' }}>
                   {label}
                 </span>
               </div>
