@@ -11,7 +11,7 @@ import {
 import type { Profile, RaceDistance, RaceType } from '../types';
 import { DEFAULT_PROFILE } from '../lib/storage';
 import { weeksUntilRace } from '../lib/planGenerator';
-import { formatFinishTime } from '../lib/format';
+import { formatFinishTime, formatPace } from '../lib/format';
 import { Slider } from './Slider';
 
 const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
@@ -74,18 +74,18 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             <div
               key={i}
               className="h-1 flex-1 rounded-full transition-colors"
-              style={{ background: i < step ? '#00F5A0' : '#272734' }}
+              style={{ background: i < step ? '#7B8CFF' : '#272734' }}
             />
           ))}
         </div>
       )}
 
-      <div className={`flex-1 overflow-y-auto px-6 ${step === 0 ? 'safe-top' : 'pt-8'} pb-32`}>
+      <div className={`flex-1 overflow-y-auto px-6 ${step === 0 ? 'safe-top' : 'pt-8'} pb-nav`}>
         {step === 0 && (
           <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
             <div
               className="grid h-20 w-20 place-items-center rounded-3xl"
-              style={{ background: 'linear-gradient(135deg, #00F5A0, #22D3EE)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
             >
               <Activity size={40} color="#061012" strokeWidth={2.5} />
             </div>
@@ -124,15 +124,15 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
                     onClick={() => set('raceType', type)}
                     className="press flex w-full items-center gap-4 rounded-2xl p-4 text-left"
                     style={{
-                      background: active ? 'rgba(0,245,160,0.1)' : '#16161F',
-                      border: active ? '1px solid #00F5A0' : '1px solid #272734',
+                      background: active ? 'rgba(123,140,255,0.1)' : '#16161F',
+                      border: active ? '1px solid #7B8CFF' : '1px solid #272734',
                     }}
                   >
                     <div
                       className="grid h-11 w-11 place-items-center rounded-xl"
-                      style={{ background: active ? 'rgba(0,245,160,0.18)' : '#1D1D28' }}
+                      style={{ background: active ? 'rgba(123,140,255,0.18)' : '#1D1D28' }}
                     >
-                      <Icon size={22} color={active ? '#00F5A0' : '#8C8C9E'} />
+                      <Icon size={22} color={active ? '#7B8CFF' : '#8C8C9E'} />
                     </div>
                     <div className="flex-1">
                       <div className="font-bold">{type}</div>
@@ -210,14 +210,28 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
                   onClick={() => set('runsPerWeek', n as Profile['runsPerWeek'])}
                   className="press flex-1 rounded-xl py-3 text-lg font-bold"
                   style={{
-                    background: draft.runsPerWeek === n ? 'rgba(0,245,160,0.14)' : '#16161F',
-                    border: draft.runsPerWeek === n ? '1px solid #00F5A0' : '1px solid #272734',
-                    color: draft.runsPerWeek === n ? '#00F5A0' : '#fff',
+                    background: draft.runsPerWeek === n ? 'rgba(123,140,255,0.14)' : '#16161F',
+                    border: draft.runsPerWeek === n ? '1px solid #7B8CFF' : '1px solid #272734',
+                    color: draft.runsPerWeek === n ? '#7B8CFF' : '#fff',
                   }}
                 >
                   {n}
                 </button>
               ))}
+            </div>
+
+            <div className="mt-6 flex items-baseline justify-between">
+              <span className="text-sm font-medium text-dim">Current easy pace</span>
+              <span className="tabular text-2xl font-extrabold text-mint">
+                {formatPace(draft.currentEasyPaceSec)}
+              </span>
+            </div>
+            <div className="mt-3">
+              <Slider value={draft.currentEasyPaceSec} min={210} max={480} step={5} onChange={(v) => set('currentEasyPaceSec', v)} />
+            </div>
+            <div className="mt-1 flex justify-between text-[11px] text-dim">
+              <span>3:30/km</span>
+              <span>8:00/km</span>
             </div>
           </Q>
         )}
@@ -232,9 +246,9 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
                   onClick={() => set('longRunDay', d)}
                   className="press flex-1 rounded-xl py-3 font-semibold"
                   style={{
-                    background: draft.longRunDay === d ? 'rgba(0,245,160,0.14)' : '#16161F',
-                    border: draft.longRunDay === d ? '1px solid #00F5A0' : '1px solid #272734',
-                    color: draft.longRunDay === d ? '#00F5A0' : '#fff',
+                    background: draft.longRunDay === d ? 'rgba(123,140,255,0.14)' : '#16161F',
+                    border: draft.longRunDay === d ? '1px solid #7B8CFF' : '1px solid #272734',
+                    color: draft.longRunDay === d ? '#7B8CFF' : '#fff',
                   }}
                 >
                   {d}
@@ -263,6 +277,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
               <Row k="Block length" v={`${weeks} weeks`} />
               <Row k="Recent race" v={`${draft.recentRaceDistance} · ${formatFinishTime(recentSecs)}`} />
               <Row k="Current volume" v={`${draft.currentWeeklyMileageKm} km/week`} />
+              <Row k="Current easy pace" v={formatPace(draft.currentEasyPaceSec)} />
               <Row k="Runs / week" v={`${draft.runsPerWeek}`} />
               <Row k="Long run" v={draft.longRunDay} />
               <Row k="Goal time" v={goalSecs > 0 ? formatFinishTime(goalSecs) : 'Predicted'} />
@@ -287,7 +302,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             onClick={() => canNext() && setStep((s) => s + 1)}
             disabled={!canNext()}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #00F5A0, #22D3EE)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             {step === 0 ? 'Get started' : 'Continue'} <ArrowRight size={18} strokeWidth={2.6} />
           </button>
@@ -295,7 +310,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           <button
             onClick={finish}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #00F5A0, #22D3EE)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             <Check size={18} strokeWidth={2.6} /> Build my plan
           </button>

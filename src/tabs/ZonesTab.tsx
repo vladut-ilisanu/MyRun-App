@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../state/store';
 import { StatTile } from '../components/StatTile';
+import { RunCharts } from '../components/RunCharts';
 import { formatFinishTime, formatPaceRange, weekStartMonday } from '../lib/format';
 import type { PaceZone } from '../types';
 
 const zoneColor: Record<PaceZone['key'], string> = {
   recovery: '#5B5B67',
-  easy: '#00C2A8',
+  easy: '#3B82F6',
   long_base: '#22D3EE',
-  marathon_pace: '#00F5A0',
+  marathon_pace: '#7B8CFF',
   tempo: '#FBBF24',
   interval: '#A855F7',
 };
@@ -68,13 +69,13 @@ export function ZonesTab() {
   const sel = selWeek ? chart.find((r) => r.week === selWeek) : null;
 
   return (
-    <div className="safe-top px-5 pb-28">
+    <div className="safe-top px-5 pb-nav">
       <h1 className="text-3xl font-extrabold tracking-tight">Stats</h1>
 
       {/* VDOT + predicted */}
       <div className="rise mt-5 grid grid-cols-2 gap-3">
         <div className="card relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 100% at 0% 0%, rgba(0,245,160,0.18), rgba(10,10,18,0) 70%)' }} />
+          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 100% at 0% 0%, rgba(123,140,255,0.18), rgba(10,10,18,0) 70%)' }} />
           <div className="relative text-[11px] font-medium uppercase tracking-wider text-dim">VDOT</div>
           <div className="relative mt-1 tabular text-5xl font-extrabold gradient-text">{vdot.toFixed(1)}</div>
           <div className="relative mt-1 text-[11px] text-dim">Daniels fitness score</div>
@@ -93,16 +94,20 @@ export function ZonesTab() {
         ))}
       </div>
 
+      {/* Your logged runs */}
+      <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Your runs</h2>
+      <RunCharts synced={synced} />
+
       {/* Intensity distribution (80/20) */}
       <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Training intensity · 80/20</h2>
       <div className="card p-4">
         <div className="flex h-5 w-full overflow-hidden rounded-full" style={{ background: '#0c0c14', gap: 2, padding: 2 }}>
-          <div className="rounded-l-full" style={{ width: `${intensity.easyPct}%`, background: '#00C2A8' }} />
+          <div className="rounded-l-full" style={{ width: `${intensity.easyPct}%`, background: '#3B82F6' }} />
           <div className="rounded-r-full" style={{ width: `${intensity.hardPct}%`, background: '#FBBF24' }} />
         </div>
         <div className="mt-3 flex justify-between text-sm">
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#00C2A8' }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#3B82F6' }} />
             <span className="font-bold">{intensity.easyPct}%</span>
             <span className="text-dim">easy</span>
           </span>

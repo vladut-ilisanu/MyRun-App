@@ -40,14 +40,14 @@ export default function App() {
                 <div
                   className="flex h-9 w-14 items-center justify-center rounded-full transition-colors"
                   style={{
-                    backgroundColor: isActive ? 'rgba(0,245,160,0.14)' : 'transparent',
+                    backgroundColor: isActive ? 'rgba(123,140,255,0.14)' : 'transparent',
                   }}
                 >
-                  <Icon size={21} color={isActive ? '#00F5A0' : '#7A7A86'} strokeWidth={2.4} />
+                  <Icon size={21} color={isActive ? '#7B8CFF' : '#7A7A86'} strokeWidth={2.4} />
                 </div>
                 <span
                   className="text-[10px] font-semibold"
-                  style={{ color: isActive ? '#00F5A0' : '#7A7A86' }}
+                  style={{ color: isActive ? '#7B8CFF' : '#7A7A86' }}
                 >
                   {label}
                 </span>

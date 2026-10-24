@@ -89,5 +89,6 @@ export const DEFAULT_PROFILE: Profile = {
   goalFinishTimeSeconds: null,
   runsPerWeek: 4,
   currentWeeklyMileageKm: 35,
+  currentEasyPaceSec: 360, // 6:00/km
   longRunDay: 'Sunday',
 };

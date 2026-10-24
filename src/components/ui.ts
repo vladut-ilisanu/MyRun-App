@@ -3,24 +3,24 @@ import type { ComplianceBadge, SegmentType, WorkoutType } from '../types';
 
 /** Solid accent per workout type (for chips, rings, borders). */
 export const typeAccent: Record<WorkoutType, string> = {
-  EASY: '#00F5A0',
+  EASY: '#7B8CFF',
   'LONG RUN': '#22D3EE',
   TEMPO: '#FBBF24',
   INTERVALS: '#A855F7',
   HILLS: '#FB923C',
-  MP: '#00F5A0',
+  MP: '#7B8CFF',
   RACE: '#FFD166',
   REST: '#8A8A98',
 };
 
 /** Two-stop gradient per workout type (for hero/header backgrounds). */
 export const typeGradient: Record<WorkoutType, [string, string]> = {
-  EASY: ['#00F5A0', '#00C2A8'],
+  EASY: ['#7B8CFF', '#3B82F6'],
   'LONG RUN': ['#22D3EE', '#3B82F6'],
   TEMPO: ['#FBBF24', '#FB923C'],
   INTERVALS: ['#A855F7', '#FF4D8D'],
   HILLS: ['#FB923C', '#F97316'],
-  MP: ['#00F5A0', '#22D3EE'],
+  MP: ['#7B8CFF', '#22D3EE'],
   RACE: ['#FFD166', '#FF7A45'],
   REST: ['#3A3A44', '#26262E'],
 };
@@ -40,19 +40,19 @@ export const typeLabel: Record<WorkoutType, string> = {
 export const segmentColor: Record<SegmentType, string> = {
   warmup: '#4B4B57',
   cooldown: '#4B4B57',
-  easy: '#00C2A8',
+  easy: '#3B82F6',
   recovery: '#5B5B67',
   tempo: '#FBBF24',
   interval: '#A855F7',
   hill: '#FB923C',
-  mp_block: '#00F5A0',
+  mp_block: '#7B8CFF',
 };
 
 export const badgeMeta: Record<
   ComplianceBadge,
   { label: string; color: string; bg: string }
 > = {
-  on_target: { label: 'On Target', color: '#00F5A0', bg: 'rgba(0,245,160,0.14)' },
+  on_target: { label: 'On Target', color: '#7B8CFF', bg: 'rgba(123,140,255,0.14)' },
   crushed_it: { label: 'Crushed It', color: '#22D3EE', bg: 'rgba(34,211,238,0.14)' },
   completed_modified: { label: 'Modified', color: '#FBBF24', bg: 'rgba(251,191,36,0.14)' },
   unplanned: { label: 'Bonus Run', color: '#A1A1AA', bg: 'rgba(161,161,170,0.12)' },

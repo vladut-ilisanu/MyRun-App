@@ -59,10 +59,10 @@ export function TodayTab() {
   const isToday = todaysWorkout?.date === today;
 
   return (
-    <div className="safe-top px-5 pb-28">
+    <div className="safe-top px-5 pb-nav">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="rise" style={{ animationDelay: '0ms' }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="rise min-w-0" style={{ animationDelay: '0ms' }}>
           <div className="text-sm font-medium text-dim">
             {phaseLabel} phase · Week {currentWeek}
             {profile.raceType !== 'Road' ? ` · ${profile.raceType}` : ''}
@@ -76,8 +76,8 @@ export function TodayTab() {
         </div>
         <button
           onClick={() => void syncHealth()}
-          className="press mt-1 grid h-11 w-11 place-items-center rounded-full bg-card"
-          style={{ border: '1px solid #242430' }}
+          className="press mt-1 grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-card"
+          style={{ border: '1px solid #272734' }}
           aria-label="Sync Health"
         >
           <RefreshCw size={18} className={syncing ? 'spin text-mint' : 'text-mint'} />
@@ -107,7 +107,7 @@ export function TodayTab() {
             </span>
             <span className="pb-2 text-xl font-bold text-dim">km</span>
           </div>
-          <div className="mt-2 flex items-center gap-4 text-sm text-white/60">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/60">
             <span className="tabular">~{formatDuration(todaysWorkout.estimated_duration_seconds)}</span>
             <span className="tabular">avg {formatPace(todaysWorkout.target_avg_pace_sec)}</span>
             {todaysWorkout.elevation_gain_m > 0 && (

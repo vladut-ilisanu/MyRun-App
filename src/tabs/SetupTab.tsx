@@ -4,7 +4,7 @@ import { useStore } from '../state/store';
 import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
 import { SCHEMA_SQL } from '../lib/schemaSql';
-import { toISODate } from '../lib/format';
+import { toISODate, formatPace } from '../lib/format';
 import { Slider } from '../components/Slider';
 import type { Profile, RaceDistance, RaceType } from '../types';
 
@@ -126,7 +126,7 @@ export function SetupTab() {
   const label = 'block text-xs font-medium text-dim';
 
   return (
-    <div className="safe-top px-5 pb-28">
+    <div className="safe-top px-5 pb-nav">
       <h1 className="text-3xl font-extrabold tracking-tight">Setup</h1>
 
       {/* Plan */}
@@ -151,9 +151,9 @@ export function SetupTab() {
                   onClick={() => update('raceType', t)}
                   className="press flex-1 rounded-xl py-2.5 text-sm font-semibold"
                   style={{
-                    background: form.raceType === t ? 'rgba(0,245,160,0.14)' : '#0A0A12',
-                    border: form.raceType === t ? '1px solid #00F5A0' : '1px solid #272734',
-                    color: form.raceType === t ? '#00F5A0' : '#fff',
+                    background: form.raceType === t ? 'rgba(123,140,255,0.14)' : '#0A0A12',
+                    border: form.raceType === t ? '1px solid #7B8CFF' : '1px solid #272734',
+                    color: form.raceType === t ? '#7B8CFF' : '#fff',
                   }}
                 >
                   {t}
@@ -219,6 +219,15 @@ export function SetupTab() {
             </div>
           </div>
           <div className={label}>
+            <div className="flex items-baseline justify-between">
+              <span>Current easy pace</span>
+              <span className="tabular text-base font-bold text-mint">{formatPace(form.currentEasyPaceSec)}</span>
+            </div>
+            <div className="mt-2">
+              <Slider value={form.currentEasyPaceSec} min={210} max={480} step={5} onChange={(v) => update('currentEasyPaceSec', v)} />
+            </div>
+          </div>
+          <div className={label}>
             Runs per week
             <div className="mt-2 flex gap-2">
               {[3, 4, 5, 6].map((n) => (
@@ -227,9 +236,9 @@ export function SetupTab() {
                   onClick={() => update('runsPerWeek', n as Profile['runsPerWeek'])}
                   className="press flex-1 rounded-xl py-2.5 text-base font-bold"
                   style={{
-                    background: form.runsPerWeek === n ? 'rgba(0,245,160,0.14)' : '#0A0A12',
-                    border: form.runsPerWeek === n ? '1px solid #00F5A0' : '1px solid #272734',
-                    color: form.runsPerWeek === n ? '#00F5A0' : '#fff',
+                    background: form.runsPerWeek === n ? 'rgba(123,140,255,0.14)' : '#0A0A12',
+                    border: form.runsPerWeek === n ? '1px solid #7B8CFF' : '1px solid #272734',
+                    color: form.runsPerWeek === n ? '#7B8CFF' : '#fff',
                   }}
                 >
                   {n}
@@ -249,7 +258,7 @@ export function SetupTab() {
           <button
             onClick={onRegenerate}
             className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #00F5A0, #22D3EE)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             <RefreshCw size={16} strokeWidth={2.6} /> Regenerate Plan
           </button>
@@ -344,7 +353,7 @@ export function SetupTab() {
           <button
             onClick={() => void onSimulate()}
             className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-mint"
-            style={{ background: 'rgba(0,245,160,0.12)', border: '1px solid rgba(0,245,160,0.4)' }}
+            style={{ background: 'rgba(123,140,255,0.12)', border: '1px solid rgba(123,140,255,0.4)' }}
           >
             <Play size={16} /> Simulate Apple Health Run
           </button>

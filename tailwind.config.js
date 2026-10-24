@@ -10,7 +10,7 @@ export default {
         cardhi: '#1D1D28',
         border: '#272734',
         borderhi: '#363646',
-        mint: '#00F5A0',
+        mint: '#7B8CFF',
         cyan: '#22D3EE',
         blue: '#3B82F6',
         indigo: '#6366F1',

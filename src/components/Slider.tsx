@@ -8,7 +8,7 @@ interface Props {
 }
 
 /** Styled range slider with a filled track (Runna-style). */
-export function Slider({ value, min, max, step = 1, onChange, color = '#00F5A0' }: Props) {
+export function Slider({ value, min, max, step = 1, onChange, color = '#7B8CFF' }: Props) {
   const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
   return (
     <input

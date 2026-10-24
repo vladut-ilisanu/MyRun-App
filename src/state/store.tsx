@@ -80,7 +80,10 @@ function dedupeByExternalId(runs: SyncedWorkout[]): SyncedWorkout[] {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile>(() => storage.loadProfile() ?? DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<Profile>(() => ({
+    ...DEFAULT_PROFILE,
+    ...(storage.loadProfile() ?? {}),
+  }));
   const [workouts, setWorkouts] = useState<PlannedWorkout[]>(() => storage.loadWorkouts());
   const [synced, setSynced] = useState<SyncedWorkout[]>(() => storage.loadSynced());
   const [syncing, setSyncing] = useState(false);

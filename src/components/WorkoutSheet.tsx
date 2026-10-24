@@ -53,7 +53,7 @@ export function WorkoutSheet({
             </button>
           </div>
           <h1 className="relative mt-4 text-3xl font-extrabold tracking-tight">{workout.title}</h1>
-          <div className="relative mt-3 flex gap-5">
+          <div className="relative mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <HeaderStat value={metersToKm(workout.target_distance_meters)} unit="km" label="Distance" />
             <HeaderStat
               value={formatDuration(workout.estimated_duration_seconds)}
@@ -66,7 +66,7 @@ export function WorkoutSheet({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 pb-28">
+        <div className="flex-1 overflow-y-auto px-5 pb-nav">
           {/* Why */}
           <div className="card mt-1 p-4">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-mint">
@@ -157,7 +157,7 @@ export function WorkoutSheet({
             className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold"
             style={{
               background: workout.completed ? '#15151B' : `linear-gradient(135deg, ${g1}, ${g2})`,
-              color: workout.completed ? '#00F5A0' : '#061012',
+              color: workout.completed ? '#7B8CFF' : '#061012',
               border: workout.completed ? '1px solid #242430' : 'none',
             }}
           >

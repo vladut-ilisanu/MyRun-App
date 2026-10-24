@@ -77,6 +77,7 @@ export interface Profile {
   goalFinishTimeSeconds: number | null;
   runsPerWeek: 3 | 4 | 5 | 6;
   currentWeeklyMileageKm: number;
+  currentEasyPaceSec: number; // the pace (sec/km) your easy runs currently feel like
   longRunDay: 'Saturday' | 'Sunday';
 }
 

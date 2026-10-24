@@ -22,7 +22,7 @@ export function PlanTab() {
     const w = workouts.find((x) => x.week === week);
     if (!w) return null;
     if (w.phase === 'Peak') return { text: 'PEAK', color: '#22D3EE' };
-    if (w.phase === 'Taper') return { text: 'TAPER', color: '#00F5A0' };
+    if (w.phase === 'Taper') return { text: 'TAPER', color: '#7B8CFF' };
     if (w.isDeload) return { text: 'DELOAD', color: '#FBBF24' };
     return null;
   };
@@ -39,7 +39,7 @@ export function PlanTab() {
     : [];
 
   return (
-    <div className="safe-top px-5 pb-28">
+    <div className="safe-top px-5 pb-nav">
       <h1 className="text-3xl font-extrabold tracking-tight">Plan</h1>
       <p className="mt-1 text-sm text-dim">{totalWeeks}-week periodized build to race day</p>
 
@@ -55,14 +55,14 @@ export function PlanTab() {
               onClick={() => setSelectedWeek(n)}
               className="press flex min-w-[58px] flex-col items-center rounded-2xl px-2 py-2.5"
               style={{
-                border: active ? '1px solid #00F5A0' : '1px solid #242430',
-                background: active ? 'rgba(0,245,160,0.12)' : '#15151B',
+                border: active ? '1px solid #7B8CFF' : '1px solid #242430',
+                background: active ? 'rgba(123,140,255,0.12)' : '#15151B',
               }}
             >
               <span className="text-[10px] font-semibold text-dim">W</span>
               <span
                 className="tabular text-lg font-extrabold leading-none"
-                style={{ color: active ? '#00F5A0' : '#fff' }}
+                style={{ color: active ? '#7B8CFF' : '#fff' }}
               >
                 {n}
               </span>
