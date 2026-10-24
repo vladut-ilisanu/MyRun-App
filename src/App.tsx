@@ -4,6 +4,8 @@ import { TodayTab } from './tabs/TodayTab';
 import { PlanTab } from './tabs/PlanTab';
 import { ZonesTab } from './tabs/ZonesTab';
 import { SetupTab } from './tabs/SetupTab';
+import { Onboarding } from './components/Onboarding';
+import { useStore } from './state/store';
 
 const tabs = [
   { to: '/today', label: 'Today', icon: Home },
@@ -13,6 +15,12 @@ const tabs = [
 ];
 
 export default function App() {
+  const { onboarded, completeOnboarding } = useStore();
+
+  if (!onboarded) {
+    return <Onboarding onComplete={completeOnboarding} />;
+  }
+
   return (
     <div className="relative mx-auto min-h-screen w-full max-w-md">
       <Routes>

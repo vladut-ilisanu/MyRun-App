@@ -11,6 +11,7 @@ const K = {
   synced: 'runnapulse.synced',
   supaUrl: 'runnapulse.supabase.url',
   supaKey: 'runnapulse.supabase.key',
+  onboarded: 'runnapulse.onboarded',
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -64,6 +65,9 @@ export const storage = {
     writeString(K.supaUrl, url);
     writeString(K.supaKey, key);
   },
+
+  loadOnboarded: (): boolean => readString(K.onboarded) === '1',
+  setOnboarded: () => writeString(K.onboarded, '1'),
 };
 
 export const DEFAULT_PROFILE: Profile = {

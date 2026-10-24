@@ -32,6 +32,8 @@ interface StoreValue {
   syncing: boolean;
   lastSynced: string | null;
   supabaseConfigured: boolean;
+  onboarded: boolean;
+  completeOnboarding: (p: Profile) => void;
   regenerate: (p: Profile) => void;
   syncHealth: () => Promise<void>;
   simulateRun: (distanceKm: number, durationSeconds: number, dateISO: string) => Promise<void>;
@@ -84,19 +86,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [supabaseConfigured, setSupabaseConfigured] = useState<boolean>(() => isConfigured());
+  const [onboarded, setOnboardedState] = useState<boolean>(() => storage.loadOnboarded());
 
   const didInit = useRef(false);
 
-  // Build an initial plan the very first time the app runs (no stored workouts).
+  // Rebuild the plan only for a returning (already-onboarded) user whose stored
+  // workouts were lost (e.g. iOS cache eviction). New users see onboarding first.
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    if (workouts.length === 0) {
+    if (onboarded && workouts.length === 0) {
       const plan = generatePlan(profile);
       const matched = applyMatching(plan.workouts, synced);
       setWorkouts(matched.workouts);
       setSynced(matched.synced);
-      storage.saveProfile(profile);
       storage.saveWorkouts(matched.workouts);
       storage.saveSynced(matched.synced);
     }
@@ -129,6 +132,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       void backupPlan(p, matched.workouts);
     },
     [synced]
+  );
+
+  const completeOnboarding = useCallback(
+    (p: Profile) => {
+      regenerate(p);
+      storage.setOnboarded();
+      setOnboardedState(true);
+    },
+    [regenerate]
   );
 
   const commit = useCallback(
@@ -217,6 +229,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     syncing,
     lastSynced,
     supabaseConfigured,
+    onboarded,
+    completeOnboarding,
     regenerate,
     syncHealth,
     simulateRun,
