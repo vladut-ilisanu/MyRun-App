@@ -16,8 +16,17 @@ import { DEFAULT_PROFILE, storage } from '../lib/storage';
 import {
   backupPlan,
   fetchSyncedWorkouts,
+  fetchUserPlan,
   insertSyncedWorkout,
   isConfigured,
+  getCurrentUser,
+  onAuthChange,
+  signInEmail,
+  signUpEmail,
+  signInMagicLink,
+  signOut as supaSignOut,
+  type AuthUser,
+  type ConnectionResult,
 } from '../lib/supabaseClient';
 import { normalizeHealthPayload } from '../lib/workoutMatcher';
 import { toISODate, mondayIndex, parseISODate } from '../lib/format';
@@ -33,6 +42,11 @@ interface StoreValue {
   lastSynced: string | null;
   supabaseConfigured: boolean;
   onboarded: boolean;
+  user: AuthUser | null;
+  signIn: (email: string, password: string) => Promise<ConnectionResult>;
+  signUp: (email: string, password: string) => Promise<ConnectionResult>;
+  signInMagic: (email: string) => Promise<ConnectionResult>;
+  signOut: () => Promise<void>;
   completeOnboarding: (p: Profile) => void;
   regenerate: (p: Profile) => void;
   syncHealth: () => Promise<void>;
@@ -91,6 +105,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [supabaseConfigured, setSupabaseConfigured] = useState<boolean>(() => isConfigured());
   const [onboarded, setOnboardedState] = useState<boolean>(() => storage.loadOnboarded());
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  const userRef = useRef<string | null>(null);
+  useEffect(() => {
+    userRef.current = user?.id ?? null;
+  }, [user]);
+
+  // Backup under the signed-in account when present, else the shared row.
+  const cloudBackup = useCallback((p: Profile, w: PlannedWorkout[]) => {
+    void backupPlan(p, w, userRef.current ?? 'default_user');
+  }, []);
 
   const didInit = useRef(false);
 
@@ -133,9 +158,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       storage.saveProfile(p);
       storage.saveWorkouts(matched.workouts);
       storage.saveSynced(matched.synced);
-      void backupPlan(p, matched.workouts);
+      cloudBackup(p, matched.workouts);
     },
-    [synced]
+    [synced, cloudBackup]
   );
 
   const completeOnboarding = useCallback(
@@ -153,9 +178,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setSynced(nextSynced);
       storage.saveWorkouts(nextWorkouts);
       storage.saveSynced(nextSynced);
-      void backupPlan(profile, nextWorkouts);
+      cloudBackup(profile, nextWorkouts);
     },
-    [profile]
+    [profile, cloudBackup]
   );
 
   const ingest = useCallback(
@@ -235,6 +260,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const refreshSupabaseStatus = useCallback(() => setSupabaseConfigured(isConfigured()), []);
 
+  // On sign-in, pull this account's saved plan (cross-device), else push local.
+  const syncOnLogin = useCallback(async (u: AuthUser) => {
+    const cloud = await fetchUserPlan(u.id);
+    const localSynced = storage.loadSynced();
+    if (cloud && cloud.workouts && cloud.workouts.length) {
+      const matched = applyMatching(cloud.workouts, localSynced);
+      const mergedProfile = { ...DEFAULT_PROFILE, ...cloud.profile };
+      setProfile(mergedProfile);
+      setWorkouts(matched.workouts);
+      setSynced(matched.synced);
+      storage.saveProfile(mergedProfile);
+      storage.saveWorkouts(matched.workouts);
+      storage.saveSynced(matched.synced);
+      storage.setOnboarded();
+      setOnboardedState(true);
+    } else {
+      const w = storage.loadWorkouts();
+      const p = storage.loadProfile();
+      if (w.length && p) void backupPlan(p, w, u.id);
+    }
+  }, []);
+
+  // Auth session lifecycle.
+  useEffect(() => {
+    if (!isConfigured()) return;
+    let active = true;
+    void getCurrentUser().then((u) => {
+      if (active) setUser(u);
+    });
+    const unsub = onAuthChange((u) => {
+      setUser(u);
+      if (u) void syncOnLogin(u);
+    });
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, [syncOnLogin, supabaseConfigured]);
+
+  const signIn = useCallback((email: string, password: string) => signInEmail(email, password), []);
+  const signUp = useCallback((email: string, password: string) => signUpEmail(email, password), []);
+  const signInMagic = useCallback((email: string) => signInMagicLink(email), []);
+  const signOut = useCallback(async () => {
+    await supaSignOut();
+    setUser(null);
+  }, []);
+
   const value: StoreValue = {
     profile,
     workouts,
@@ -246,6 +318,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     lastSynced,
     supabaseConfigured,
     onboarded,
+    user,
+    signIn,
+    signUp,
+    signInMagic,
+    signOut,
     completeOnboarding,
     regenerate,
     syncHealth,

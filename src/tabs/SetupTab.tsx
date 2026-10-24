@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, Play, RefreshCw, Database, Smartphone } from 'lucide-react';
+import { Copy, Check, Play, RefreshCw, Database, Smartphone, UserRound, LogOut, Mail } from 'lucide-react';
 import { useStore } from '../state/store';
 import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
@@ -46,7 +46,18 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
 
 export function SetupTab() {
-  const { profile, regenerate, simulateRun, refreshSupabaseStatus } = useStore();
+  const { profile, regenerate, simulateRun, refreshSupabaseStatus, user, signIn, signUp, signInMagic, signOut, supabaseConfigured } = useStore();
+
+  // Account form
+  const [acctEmail, setAcctEmail] = useState('');
+  const [acctPass, setAcctPass] = useState('');
+  const [acctMsg, setAcctMsg] = useState<ConnectionResult | null>(null);
+  const [acctBusy, setAcctBusy] = useState(false);
+  const doAuth = async (fn: () => Promise<ConnectionResult>) => {
+    setAcctBusy(true);
+    setAcctMsg(await fn());
+    setAcctBusy(false);
+  };
 
   const [form, setForm] = useState<Profile>(profile);
   const recent = secondsToHMS(form.recentRaceTimeSeconds);
@@ -128,6 +139,82 @@ export function SetupTab() {
   return (
     <div className="safe-top px-5 pb-nav">
       <h1 className="text-3xl font-extrabold tracking-tight">Setup</h1>
+
+      {/* Account */}
+      <section className="mt-5">
+        <h2 className={sectionTitle}>
+          <span className="inline-flex items-center gap-1.5"><UserRound size={13} /> Account</span>
+        </h2>
+        <div className="card space-y-3 p-4">
+          {!supabaseConfigured ? (
+            <div className="text-sm text-dim">
+              Connect Supabase below first — your account and cross-device sync run on it.
+            </div>
+          ) : user ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-dim">Signed in as</div>
+                  <div className="font-semibold">{user.email}</div>
+                </div>
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-mint/15">
+                  <UserRound size={20} className="text-mint" />
+                </span>
+              </div>
+              <div className="text-xs text-dim">Your plan is backed up to this account and follows you to any device you sign in on.</div>
+              <button
+                onClick={() => void signOut()}
+                className="press flex items-center justify-center gap-2 rounded-xl bg-bg px-3 py-2.5 text-sm font-semibold text-amber"
+                style={inputStyle}
+              >
+                <LogOut size={14} /> Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-dim">
+                Create an account (any email, incl. your @icloud.com) so your plan syncs across devices.
+              </div>
+              <label className={label}>
+                Email
+                <input className={input} style={inputStyle} type="email" autoComplete="email" placeholder="you@icloud.com" value={acctEmail} onChange={(e) => setAcctEmail(e.target.value)} />
+              </label>
+              <label className={label}>
+                Password
+                <input className={input} style={inputStyle} type="password" autoComplete="current-password" placeholder="••••••••" value={acctPass} onChange={(e) => setAcctPass(e.target.value)} />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => void doAuth(() => signIn(acctEmail, acctPass))}
+                  disabled={acctBusy}
+                  className="press flex-1 rounded-xl py-2.5 text-sm font-bold text-black disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => void doAuth(() => signUp(acctEmail, acctPass))}
+                  disabled={acctBusy}
+                  className="press flex-1 rounded-xl bg-bg py-2.5 text-sm font-semibold disabled:opacity-50"
+                  style={inputStyle}
+                >
+                  Create account
+                </button>
+              </div>
+              <button
+                onClick={() => void doAuth(() => signInMagic(acctEmail))}
+                disabled={acctBusy || !acctEmail}
+                className="press flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold text-mint disabled:opacity-50"
+              >
+                <Mail size={13} /> Email me a magic link instead
+              </button>
+              {acctMsg && (
+                <div className={`text-xs ${acctMsg.ok ? 'text-mint' : 'text-amber'}`}>{acctMsg.message}</div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
 
       {/* Plan */}
       <section className="mt-6">

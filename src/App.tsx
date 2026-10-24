@@ -25,6 +25,7 @@ export default function App() {
 
   return (
     <div className="relative mx-auto min-h-screen w-full max-w-md">
+      <div className="statusbar-scrim" />
       <Routes>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<TodayTab />} />

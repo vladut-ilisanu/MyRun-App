@@ -198,6 +198,20 @@ export function ZonesTab() {
           </div>
         ))}
       </div>
+      {(() => {
+        const easy = paces.zones.find((z) => z.key === 'easy');
+        if (easy && profile.currentEasyPaceSec > 0 && profile.currentEasyPaceSec < easy.min_sec - 3) {
+          return (
+            <div className="mt-2 rounded-xl bg-amber/10 p-3 text-xs leading-relaxed text-amber">
+              Heads up: your current easy pace is faster than your optimal Easy zone. Easy runs
+              are <i>meant</i> to feel almost too slow — holding back builds more aerobic fitness
+              with less fatigue (the 80/20 principle). If your recent race time in Setup is off,
+              update it to recalibrate these zones.
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Weekly mileage chart (tap a week) */}
       <div className="mb-2 mt-7 flex items-center justify-between">
