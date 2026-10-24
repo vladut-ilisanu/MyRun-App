@@ -2,9 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 html,
 body {
-  background-color: #0a0a0c;
+  background-color: #07070a;
   color: #ffffff;
   margin: 0;
   overscroll-behavior-y: none;
@@ -12,6 +18,8 @@ body {
   -webkit-user-select: none;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -19,32 +27,64 @@ body {
   min-height: 100dvh;
 }
 
-/* Allow text selection inside inputs/textareas. */
 input,
-textarea {
+textarea,
+select {
   -webkit-user-select: text;
   user-select: text;
 }
 
-/* iOS safe areas (improvements #6 context + QA #3). */
+/* Numeric displays align nicely. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ---- iOS safe areas (QA #3) ---- */
 .safe-top {
-  padding-top: max(env(safe-area-inset-top), 16px);
+  padding-top: max(env(safe-area-inset-top), 20px);
 }
 
 .tabbar {
   position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 28rem;
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
-  background: rgba(14, 14, 18, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid #26262e;
+  background: rgba(10, 10, 14, 0.72);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 50;
 }
 
-/* Hide scrollbars on horizontal selectors but keep scrolling. */
+/* ---- reusable surfaces ---- */
+.card {
+  background: linear-gradient(180deg, #17171e 0%, #131319 100%);
+  border: 1px solid #242430;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -18px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- press feedback on any pressable ---- */
+.press {
+  transition: transform 160ms var(--ease-out);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* ---- gradient text ---- */
+.gradient-text {
+  background: linear-gradient(135deg, #00f5a0, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- horizontal scrollers hide scrollbar ---- */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -53,11 +93,67 @@ textarea {
   scrollbar-width: none;
 }
 
+/* ---- spinner ---- */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 .spin {
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ---- staggered entrance for lists / sections ---- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  opacity: 0;
+  animation: rise 460ms var(--ease-out) forwards;
+}
+
+/* ---- full-screen sheet slide-up ---- */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.sheet-in {
+  animation: sheet-in 320ms var(--ease-drawer) forwards;
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.overlay-in {
+  animation: overlay-in 200ms ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .sheet-in,
+  .overlay-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .press:active {
+    transform: none;
+  }
 }

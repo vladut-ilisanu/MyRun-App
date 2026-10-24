@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, Play, RefreshCw } from 'lucide-react';
+import { Copy, Check, Play, RefreshCw, Database, Smartphone } from 'lucide-react';
 import { useStore } from '../state/store';
 import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
@@ -25,7 +25,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      /* clipboard blocked; user can still select text */
+      /* clipboard blocked */
     }
     setDone(true);
     setTimeout(() => setDone(false), 1400);
@@ -33,10 +33,11 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-mint"
+      className="press flex items-center gap-1 rounded-lg bg-bg px-2.5 py-1.5 text-xs font-semibold text-mint"
+      style={{ border: '1px solid #242430' }}
     >
       {done ? <Check size={13} /> : <Copy size={13} />}
-      {done ? 'Copied' : label}
+      {label && (done ? 'Copied' : label)}
     </button>
   );
 }
@@ -46,7 +47,6 @@ const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
 export function SetupTab() {
   const { profile, regenerate, simulateRun, refreshSupabaseStatus } = useStore();
 
-  // ---- plan form state ----
   const [form, setForm] = useState<Profile>(profile);
   const recent = secondsToHMS(form.recentRaceTimeSeconds);
   const goal = secondsToHMS(form.goalFinishTimeSeconds ?? 0);
@@ -57,14 +57,12 @@ export function SetupTab() {
   const [goalM, setGoalM] = useState(goal.m);
   const [goalS, setGoalS] = useState(goal.s);
 
-  // ---- supabase form state ----
   const saved = storage.loadSupabase();
   const [supaUrl, setSupaUrl] = useState(saved.url);
   const [supaKey, setSupaKey] = useState(saved.key);
   const [conn, setConn] = useState<ConnectionResult | null>(null);
   const [testing, setTesting] = useState(false);
 
-  // ---- simulate run state ----
   const [simDist, setSimDist] = useState('21.1');
   const [simMin, setSimMin] = useState('110');
   const [simDate, setSimDate] = useState(toISODate(new Date()));
@@ -105,7 +103,7 @@ export function SetupTab() {
       return;
     }
     await simulateRun(km, sec, simDate);
-    setSimMsg(`Simulated ${km} km run on ${simDate} — check the Today tab.`);
+    setSimMsg(`Simulated ${km} km on ${simDate} — check the Today tab.`);
     setTimeout(() => setSimMsg(''), 3000);
   };
 
@@ -120,77 +118,71 @@ export function SetupTab() {
 }`;
 
   const input =
-    'w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-mint';
-  const timeBox = 'w-14 rounded-xl border border-border bg-bg px-2 py-2 text-center text-sm';
+    'mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm outline-none transition-colors focus:border-mint';
+  const inputStyle = { border: '1px solid #242430' } as const;
+  const timeBox = 'w-14 rounded-xl bg-bg px-2 py-2.5 text-center text-sm tabular';
+  const sectionTitle = 'mb-2 text-xs font-bold uppercase tracking-wider text-dim';
+  const label = 'block text-xs font-medium text-dim';
 
   return (
     <div className="safe-top px-5 pb-28">
-      <h1 className="text-2xl font-bold">Setup &amp; Sync</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight">Setup</h1>
 
-      {/* Plan customizer */}
-      <section className="mt-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/40">Plan</h2>
-        <div className="mt-2 space-y-3 rounded-2xl border border-border bg-card p-4">
-          <label className="block text-xs text-white/50">
+      {/* Plan */}
+      <section className="mt-6">
+        <h2 className={sectionTitle}>Your plan</h2>
+        <div className="card space-y-3 p-4">
+          <label className={label}>
             Goal race name
-            <input
-              className={input}
-              value={form.goalRaceName}
-              onChange={(e) => update('goalRaceName', e.target.value)}
-            />
+            <input className={input} style={inputStyle} value={form.goalRaceName} onChange={(e) => update('goalRaceName', e.target.value)} />
           </label>
-          <label className="block text-xs text-white/50">
+          <label className={label}>
             Goal race date
-            <input
-              type="date"
-              className={input}
-              value={form.goalRaceDate}
-              onChange={(e) => update('goalRaceDate', e.target.value)}
-            />
+            <input type="date" className={input} style={inputStyle} value={form.goalRaceDate} onChange={(e) => update('goalRaceDate', e.target.value)} />
           </label>
 
-          <div className="text-xs text-white/50">
+          <div className={label}>
             Recent race
-            <div className="mt-1 flex gap-2">
-              <select
-                className={input + ' flex-1'}
-                value={form.recentRaceDistance}
-                onChange={(e) => update('recentRaceDistance', e.target.value as RaceDistance)}
-              >
-                {DISTANCES.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              className={input}
+              style={inputStyle}
+              value={form.recentRaceDistance}
+              onChange={(e) => update('recentRaceDistance', e.target.value as RaceDistance)}
+            >
+              {DISTANCES.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
             <div className="mt-2 flex items-center gap-2">
-              <input className={timeBox} value={recentH} onChange={(e) => setRecentH(e.target.value)} inputMode="numeric" />
-              <span>:</span>
-              <input className={timeBox} value={recentM} onChange={(e) => setRecentM(e.target.value)} inputMode="numeric" />
-              <span>:</span>
-              <input className={timeBox} value={recentS} onChange={(e) => setRecentS(e.target.value)} inputMode="numeric" />
-              <span className="text-[11px] text-white/35">h : m : s</span>
+              <input className={timeBox} style={inputStyle} value={recentH} onChange={(e) => setRecentH(e.target.value)} inputMode="numeric" />
+              <span className="text-dim">:</span>
+              <input className={timeBox} style={inputStyle} value={recentM} onChange={(e) => setRecentM(e.target.value)} inputMode="numeric" />
+              <span className="text-dim">:</span>
+              <input className={timeBox} style={inputStyle} value={recentS} onChange={(e) => setRecentS(e.target.value)} inputMode="numeric" />
+              <span className="text-[11px] text-dim">h : m : s</span>
             </div>
           </div>
 
-          <div className="text-xs text-white/50">
+          <div className={label}>
             Goal finish time (optional)
             <div className="mt-1 flex items-center gap-2">
-              <input className={timeBox} value={goalH} onChange={(e) => setGoalH(e.target.value)} inputMode="numeric" />
-              <span>:</span>
-              <input className={timeBox} value={goalM} onChange={(e) => setGoalM(e.target.value)} inputMode="numeric" />
-              <span>:</span>
-              <input className={timeBox} value={goalS} onChange={(e) => setGoalS(e.target.value)} inputMode="numeric" />
-              <span className="text-[11px] text-white/35">leave 0 to use prediction</span>
+              <input className={timeBox} style={inputStyle} value={goalH} onChange={(e) => setGoalH(e.target.value)} inputMode="numeric" />
+              <span className="text-dim">:</span>
+              <input className={timeBox} style={inputStyle} value={goalM} onChange={(e) => setGoalM(e.target.value)} inputMode="numeric" />
+              <span className="text-dim">:</span>
+              <input className={timeBox} style={inputStyle} value={goalS} onChange={(e) => setGoalS(e.target.value)} inputMode="numeric" />
+              <span className="text-[11px] text-dim">0 = use prediction</span>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <label className="flex-1 text-xs text-white/50">
+            <label className={`${label} flex-1`}>
               Runs / week
               <select
                 className={input}
+                style={inputStyle}
                 value={form.runsPerWeek}
                 onChange={(e) => update('runsPerWeek', Number(e.target.value) as Profile['runsPerWeek'])}
               >
@@ -201,24 +193,15 @@ export function SetupTab() {
                 ))}
               </select>
             </label>
-            <label className="flex-1 text-xs text-white/50">
+            <label className={`${label} flex-1`}>
               Current km / week
-              <input
-                className={input}
-                inputMode="numeric"
-                value={form.currentWeeklyMileageKm}
-                onChange={(e) => update('currentWeeklyMileageKm', Number(e.target.value) || 0)}
-              />
+              <input className={input} style={inputStyle} inputMode="numeric" value={form.currentWeeklyMileageKm} onChange={(e) => update('currentWeeklyMileageKm', Number(e.target.value) || 0)} />
             </label>
           </div>
 
-          <label className="block text-xs text-white/50">
+          <label className={label}>
             Long run day
-            <select
-              className={input}
-              value={form.longRunDay}
-              onChange={(e) => update('longRunDay', e.target.value as Profile['longRunDay'])}
-            >
+            <select className={input} style={inputStyle} value={form.longRunDay} onChange={(e) => update('longRunDay', e.target.value as Profile['longRunDay'])}>
               <option value="Saturday">Saturday</option>
               <option value="Sunday">Sunday</option>
             </select>
@@ -226,76 +209,72 @@ export function SetupTab() {
 
           <button
             onClick={onRegenerate}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-mint py-3 font-semibold text-bg"
+            className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
+            style={{ background: 'linear-gradient(135deg, #00F5A0, #22D3EE)' }}
           >
-            <RefreshCw size={16} /> Regenerate Plan
+            <RefreshCw size={16} strokeWidth={2.6} /> Regenerate Plan
           </button>
         </div>
       </section>
 
       {/* Supabase */}
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/40">
-          Supabase connection
+      <section className="mt-7">
+        <h2 className={sectionTitle}>
+          <span className="inline-flex items-center gap-1.5">
+            <Database size={13} /> Cloud sync (Supabase)
+          </span>
         </h2>
-        <div className="mt-2 space-y-3 rounded-2xl border border-border bg-card p-4">
-          <label className="block text-xs text-white/50">
+        <div className="card space-y-3 p-4">
+          <label className={label}>
             Project URL
-            <input
-              className={input}
-              placeholder="https://xxxx.supabase.co"
-              value={supaUrl}
-              onChange={(e) => setSupaUrl(e.target.value)}
-            />
+            <input className={input} style={inputStyle} placeholder="https://xxxx.supabase.co" value={supaUrl} onChange={(e) => setSupaUrl(e.target.value)} />
           </label>
-          <label className="block text-xs text-white/50">
+          <label className={label}>
             Anon public key
-            <input
-              className={input}
-              placeholder="eyJhbGciOi..."
-              value={supaKey}
-              onChange={(e) => setSupaKey(e.target.value)}
-            />
+            <input className={input} style={inputStyle} placeholder="eyJhbGciOi..." value={supaKey} onChange={(e) => setSupaKey(e.target.value)} />
           </label>
           <div className="flex items-center gap-3">
             <button
               onClick={runTest}
-              className="flex items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2 text-sm"
+              className="press flex items-center gap-2 rounded-xl bg-bg px-3 py-2.5 text-sm font-semibold"
+              style={inputStyle}
             >
               <RefreshCw size={14} className={testing ? 'spin text-mint' : 'text-mint'} />
               Save &amp; test
             </button>
             {conn && (
-              <span className={`text-xs ${conn.ok ? 'text-mint' : 'text-amber'}`}>
+              <span className={`text-xs font-medium ${conn.ok ? 'text-mint' : 'text-amber'}`}>
                 {conn.ok ? '● ' : '○ '}
                 {conn.message}
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-border bg-bg p-3">
-            <span className="text-xs text-white/50">Database schema SQL</span>
+          <div className="flex items-center justify-between rounded-xl bg-bg p-3" style={inputStyle}>
+            <span className="text-xs font-medium text-dim">Database schema SQL</span>
             <CopyButton text={SCHEMA_SQL} label="Copy SQL" />
           </div>
         </div>
       </section>
 
-      {/* iOS Shortcut generator */}
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/40">
-          iOS Shortcut — Get Contents of URL
+      {/* iOS Shortcut */}
+      <section className="mt-7">
+        <h2 className={sectionTitle}>
+          <span className="inline-flex items-center gap-1.5">
+            <Smartphone size={13} /> iOS Shortcut — Get Contents of URL
+          </span>
         </h2>
-        <div className="mt-2 space-y-3 rounded-2xl border border-border bg-card p-4 text-xs">
+        <div className="card space-y-3 p-4 text-xs">
           <Field label="URL (POST)" value={postUrl} />
-          <div className="rounded-xl border border-border bg-bg p-3">
-            <div className="mb-2 font-semibold text-white/60">Headers</div>
+          <div className="rounded-xl bg-bg p-3" style={inputStyle}>
+            <div className="mb-2 font-bold text-white/70">Headers</div>
             <HeaderRow k="apikey" v={keyShown} />
             <HeaderRow k="Authorization" v={`Bearer ${keyShown}`} />
             <HeaderRow k="Content-Type" v="application/json" />
             <HeaderRow k="Prefer" v="resolution=merge-duplicates" />
           </div>
-          <div className="rounded-xl border border-border bg-bg p-3">
+          <div className="rounded-xl bg-bg p-3" style={inputStyle}>
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-semibold text-white/60">Request body (JSON)</span>
+              <span className="font-bold text-white/70">Request body (JSON)</span>
               <CopyButton text={payload} />
             </div>
             <pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-white/70">
@@ -306,37 +285,36 @@ export function SetupTab() {
       </section>
 
       {/* Simulate */}
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/40">
-          Test the pipeline
-        </h2>
-        <div className="mt-2 space-y-3 rounded-2xl border border-border bg-card p-4">
+      <section className="mt-7">
+        <h2 className={sectionTitle}>Test the pipeline</h2>
+        <div className="card space-y-3 p-4">
           <div className="flex gap-2">
-            <label className="flex-1 text-xs text-white/50">
+            <label className={`${label} flex-1`}>
               Distance (km)
-              <input className={input} value={simDist} onChange={(e) => setSimDist(e.target.value)} inputMode="decimal" />
+              <input className={input} style={inputStyle} value={simDist} onChange={(e) => setSimDist(e.target.value)} inputMode="decimal" />
             </label>
-            <label className="flex-1 text-xs text-white/50">
+            <label className={`${label} flex-1`}>
               Duration (min)
-              <input className={input} value={simMin} onChange={(e) => setSimMin(e.target.value)} inputMode="numeric" />
+              <input className={input} style={inputStyle} value={simMin} onChange={(e) => setSimMin(e.target.value)} inputMode="numeric" />
             </label>
           </div>
-          <label className="block text-xs text-white/50">
+          <label className={label}>
             Date
-            <input type="date" className={input} value={simDate} onChange={(e) => setSimDate(e.target.value)} />
+            <input type="date" className={input} style={inputStyle} value={simDate} onChange={(e) => setSimDate(e.target.value)} />
           </label>
           <button
             onClick={() => void onSimulate()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-mint/40 bg-mint/10 py-3 font-semibold text-mint"
+            className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-mint"
+            style={{ background: 'rgba(0,245,160,0.12)', border: '1px solid rgba(0,245,160,0.4)' }}
           >
             <Play size={16} /> Simulate Apple Health Run
           </button>
-          {simMsg && <div className="text-xs text-mint">{simMsg}</div>}
+          {simMsg && <div className="text-xs font-medium text-mint">{simMsg}</div>}
         </div>
       </section>
 
-      <p className="mt-6 text-center text-[11px] text-white/25">
-        RunnaPulse · data stays on your device; Supabase is an optional cloud backup.
+      <p className="mt-7 text-center text-[11px] text-dim">
+        RunnaPulse · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );
@@ -344,9 +322,9 @@ export function SetupTab() {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border bg-bg p-3">
+    <div className="rounded-xl bg-bg p-3" style={{ border: '1px solid #242430' }}>
       <div className="mb-1 flex items-center justify-between">
-        <span className="font-semibold text-white/60">{label}</span>
+        <span className="font-bold text-white/70">{label}</span>
         <CopyButton text={value} />
       </div>
       <div className="break-all font-mono text-[11px] text-white/70">{value}</div>

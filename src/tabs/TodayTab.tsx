@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, ChevronRight } from 'lucide-react';
+import { RefreshCw, ArrowRight, Heart } from 'lucide-react';
 import { useStore, useCurrentWeek } from '../state/store';
 import { SegmentBar } from '../components/SegmentBar';
 import { WorkoutSheet } from '../components/WorkoutSheet';
 import { ComplianceBadgePill } from '../components/Badge';
+import { ProgressRing } from '../components/ProgressRing';
+import { TypeChip } from '../components/TypeChip';
+import { heroBackground, typeAccent } from '../components/ui';
 import {
   formatDuration,
   formatPace,
@@ -13,7 +16,7 @@ import {
   daysBetween,
 } from '../lib/format';
 import { evaluateCompliance, movingPaceSecPerKm } from '../lib/workoutMatcher';
-import type { ComplianceBadge, PlannedWorkout } from '../types';
+import type { ComplianceBadge } from '../types';
 
 export function TodayTab() {
   const { workouts, synced, profile, syncing, lastSynced, syncHealth, markComplete, relink } =
@@ -34,20 +37,17 @@ export function TodayTab() {
   const weekWorkouts = workouts.filter((w) => w.week === currentWeek);
   const plannedKm = weekWorkouts.reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
   const completedKm =
-    weekWorkouts.filter((w) => w.completed).reduce((s, w) => s + w.target_distance_meters, 0) /
-    1000;
+    weekWorkouts.filter((w) => w.completed).reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
   const runsDone = weekWorkouts.filter((w) => w.completed).length;
   const phaseLabel = weekWorkouts[0]?.phase ?? 'Base';
 
   const recentRuns = [...synced]
     .sort((a, b) => b.local_date.localeCompare(a.local_date))
-    .slice(0, 5);
+    .slice(0, 4);
 
   const sheetWorkout = workouts.find((w) => w.id === sheetId) ?? null;
   const sheetWeekRuns = sheetWorkout
-    ? synced.filter(
-        (r) => weekStartMonday(r.local_date) === weekStartMonday(sheetWorkout.date)
-      )
+    ? synced.filter((r) => weekStartMonday(r.local_date) === weekStartMonday(sheetWorkout.date))
     : [];
 
   function badgeFor(run: (typeof synced)[number]): ComplianceBadge {
@@ -56,87 +56,131 @@ export function TodayTab() {
     return w ? evaluateCompliance(run, w).badge : 'unplanned';
   }
 
+  const isToday = todaysWorkout?.date === today;
+
   return (
     <div className="safe-top px-5 pb-28">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <div className="inline-flex items-center rounded-full bg-mint/10 px-3 py-1 text-sm font-semibold text-mint">
-            {weeksToGoal} {weeksToGoal === 1 ? 'week' : 'weeks'} to goal
-          </div>
-          <div className="mt-2 text-xs font-medium uppercase tracking-wide text-white/40">
-            {phaseLabel} Phase · Week {currentWeek}
+        <div className="rise" style={{ animationDelay: '0ms' }}>
+          <div className="text-sm font-medium text-dim">{phaseLabel} phase · Week {currentWeek}</div>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <span className="tabular text-5xl font-extrabold tracking-tight">{weeksToGoal}</span>
+            <span className="pb-1 text-base font-semibold text-dim">
+              {weeksToGoal === 1 ? 'week to go' : 'weeks to go'}
+            </span>
           </div>
         </div>
         <button
           onClick={() => void syncHealth()}
-          className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          className="press mt-1 grid h-11 w-11 place-items-center rounded-full bg-card"
+          style={{ border: '1px solid #242430' }}
+          aria-label="Sync Health"
         >
-          <RefreshCw size={16} className={syncing ? 'spin text-mint' : 'text-mint'} />
-          {syncing ? 'Syncing' : 'Sync Health'}
+          <RefreshCw size={18} className={syncing ? 'spin text-mint' : 'text-mint'} />
         </button>
       </div>
       {lastSynced && (
-        <div className="mt-1 text-right text-[11px] text-white/30">
-          Last synced {new Date(lastSynced).toLocaleTimeString()}
+        <div className="mt-1 text-[11px] text-dim">
+          Synced {new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       )}
 
-      {/* Today hero card */}
-      <h2 className="mt-5 text-sm font-semibold uppercase tracking-wide text-white/40">
-        {todaysWorkout?.date === today ? "Today's session" : 'Next session'}
-      </h2>
+      {/* Hero card */}
+      <div className="rise mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim" style={{ animationDelay: '40ms' }}>
+        {isToday ? "Today's session" : 'Next up'}
+      </div>
       {todaysWorkout ? (
-        <HeroCard workout={todaysWorkout} onOpen={() => setSheetId(todaysWorkout.id)} />
+        <button
+          onClick={() => setSheetId(todaysWorkout.id)}
+          className="press rise card block w-full overflow-hidden p-5 text-left"
+          style={{ ...heroBackground(todaysWorkout.type), animationDelay: '60ms' }}
+        >
+          <TypeChip type={todaysWorkout.type} solid />
+          <h2 className="mt-3 text-2xl font-extrabold leading-tight">{todaysWorkout.title}</h2>
+          <div className="mt-4 flex items-end gap-1">
+            <span className="tabular text-7xl font-extrabold tracking-tighter">
+              {metersToKm(todaysWorkout.target_distance_meters)}
+            </span>
+            <span className="pb-2 text-xl font-bold text-dim">km</span>
+          </div>
+          <div className="mt-2 flex items-center gap-4 text-sm text-white/60">
+            <span className="tabular">~{formatDuration(todaysWorkout.estimated_duration_seconds)}</span>
+            <span className="tabular">
+              avg {formatPace(todaysWorkout.target_avg_pace_sec)}
+            </span>
+          </div>
+          <div className="mt-4">
+            <SegmentBar segments={todaysWorkout.segments} height={12} />
+          </div>
+          <div className="mt-4 flex items-center gap-1 text-sm font-semibold" style={{ color: typeAccent[todaysWorkout.type] }}>
+            View full session <ArrowRight size={15} />
+          </div>
+        </button>
       ) : (
-        <div className="mt-2 rounded-2xl border border-border bg-card p-5 text-white/50">
-          No upcoming sessions — your plan is complete. 🎉
+        <div className="card p-6 text-center text-white/50">
+          Plan complete — enjoy race day. 🎉
         </div>
       )}
 
-      {/* Weekly volume & compliance */}
-      <div className="mt-6 rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold">Week {currentWeek} volume</span>
-          <span className="text-white/50">
-            {completedKm.toFixed(1)} / {plannedKm.toFixed(1)} km
-          </span>
-        </div>
-        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-border">
-          <div
-            className="h-full rounded-full bg-mint"
-            style={{ width: `${plannedKm ? Math.min(100, (completedKm / plannedKm) * 100) : 0}%` }}
-          />
-        </div>
-        <div className="mt-2 text-xs text-white/50">
-          {runsDone} / {weekWorkouts.length} runs completed · {phaseLabel} phase
+      {/* Weekly progress */}
+      <div className="rise card mt-5 flex items-center gap-5 p-5" style={{ animationDelay: '120ms' }}>
+        <ProgressRing value={plannedKm ? completedKm / plannedKm : 0} size={92} stroke={9}>
+          <div className="text-center">
+            <div className="tabular text-xl font-extrabold leading-none">{completedKm.toFixed(0)}</div>
+            <div className="text-[10px] text-dim">of {plannedKm.toFixed(0)}km</div>
+          </div>
+        </ProgressRing>
+        <div className="flex-1">
+          <div className="text-sm font-bold">This week</div>
+          <div className="mt-1 text-sm text-dim">
+            {runsDone} of {weekWorkouts.length} runs done
+          </div>
+          <div className="mt-3 flex gap-2">
+            {weekWorkouts.map((w) => (
+              <div
+                key={w.id}
+                className="h-1.5 flex-1 rounded-full"
+                style={{ background: w.completed ? typeAccent[w.type] : '#242430' }}
+                title={w.title}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Recent synced runs */}
-      <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-white/40">
-        Recent Apple Health runs
-      </h2>
+      {/* Recent runs */}
+      <div className="rise mb-2 mt-7 flex items-center justify-between" style={{ animationDelay: '160ms' }}>
+        <span className="text-xs font-bold uppercase tracking-wider text-dim">Recent runs</span>
+      </div>
       {recentRuns.length === 0 ? (
-        <div className="mt-2 rounded-2xl border border-border bg-card p-4 text-sm text-white/40">
-          No synced runs yet. Record a run in Strava, or use “Simulate Apple Health Run” in Setup.
+        <div className="card p-5 text-sm text-white/40">
+          No runs synced yet. Record in Strava, or try “Simulate run” in Setup.
         </div>
       ) : (
-        <div className="mt-2 space-y-2">
-          {recentRuns.map((r) => (
+        <div className="space-y-2">
+          {recentRuns.map((r, i) => (
             <div
               key={r.external_id}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card p-4"
+              className="rise card flex items-center justify-between p-4"
+              style={{ animationDelay: `${180 + i * 40}ms` }}
             >
               <div>
-                <div className="font-semibold">
-                  {metersToKm(r.distance_meters)} km ·{' '}
-                  {formatPace(movingPaceSecPerKm(r.duration_seconds, r.distance_meters))}
+                <div className="flex items-baseline gap-1">
+                  <span className="tabular text-lg font-extrabold">{metersToKm(r.distance_meters)}</span>
+                  <span className="text-xs font-semibold text-dim">km</span>
+                  <span className="tabular ml-2 text-sm text-white/55">
+                    {formatPace(movingPaceSecPerKm(r.duration_seconds, r.distance_meters))}
+                  </span>
                 </div>
-                <div className="mt-0.5 text-xs text-white/45">
-                  {r.local_date}
-                  {r.avg_heart_rate ? ` · ${Math.round(r.avg_heart_rate)} bpm` : ''} ·{' '}
-                  {formatDuration(r.duration_seconds)}
+                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-dim">
+                  <span className="tabular">{r.local_date}</span>
+                  {r.avg_heart_rate ? (
+                    <span className="flex items-center gap-0.5">
+                      <Heart size={10} className="text-pink" /> {Math.round(r.avg_heart_rate)}
+                    </span>
+                  ) : null}
+                  <span className="tabular">{formatDuration(r.duration_seconds)}</span>
                 </div>
               </div>
               <ComplianceBadgePill badge={badgeFor(r)} />
@@ -155,30 +199,5 @@ export function TodayTab() {
         />
       )}
     </div>
-  );
-}
-
-function HeroCard({ workout, onOpen }: { workout: PlannedWorkout; onOpen: () => void }) {
-  return (
-    <button
-      onClick={onOpen}
-      className="mt-2 w-full rounded-2xl border border-border bg-card p-5 text-left"
-    >
-      <div className="flex items-center justify-between">
-        <span className="rounded-md bg-mint/15 px-2 py-1 text-xs font-bold tracking-wide text-mint">
-          {workout.type}
-        </span>
-        <ChevronRight size={18} className="text-white/40" />
-      </div>
-      <h3 className="mt-3 text-xl font-bold">{workout.title}</h3>
-      <div className="mt-1 text-sm text-white/55">
-        {metersToKm(workout.target_distance_meters)} km · ~
-        {formatDuration(workout.estimated_duration_seconds)} · avg{' '}
-        {formatPace(workout.target_avg_pace_sec)}
-      </div>
-      <div className="mt-4">
-        <SegmentBar segments={workout.segments} />
-      </div>
-    </button>
   );
 }
