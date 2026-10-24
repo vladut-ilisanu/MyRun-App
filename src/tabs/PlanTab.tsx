@@ -118,6 +118,7 @@ export function PlanTab() {
             <div className="tabular mt-0.5 text-xs text-dim">
               {metersToKm(w.target_distance_meters)} km · ~{formatDuration(w.estimated_duration_seconds)} ·
               avg {formatPace(w.target_avg_pace_sec)}
+              {w.elevation_gain_m > 0 ? ` · ↑${w.elevation_gain_m} m` : ''}
             </div>
             <div className="mt-3">
               <SegmentBar segments={w.segments} />

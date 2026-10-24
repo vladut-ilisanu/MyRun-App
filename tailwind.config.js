@@ -4,20 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#07070A',
-        surface: '#0E0E13',
-        card: '#15151B',
-        cardhi: '#1C1C24',
-        border: '#242430',
-        borderhi: '#33333F',
+        bg: '#0A0A12',
+        surface: '#101019',
+        card: '#16161F',
+        cardhi: '#1D1D28',
+        border: '#272734',
+        borderhi: '#363646',
         mint: '#00F5A0',
         cyan: '#22D3EE',
         blue: '#3B82F6',
+        indigo: '#6366F1',
         violet: '#A855F7',
         pink: '#FF4D8D',
-        orange: '#FF7A45',
+        orange: '#FB923C',
         amber: '#FBBF24',
-        dim: '#8A8A98',
+        dim: '#8C8C9E',
       },
       fontFamily: {
         sans: [

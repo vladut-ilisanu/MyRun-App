@@ -7,6 +7,7 @@ export const typeAccent: Record<WorkoutType, string> = {
   'LONG RUN': '#22D3EE',
   TEMPO: '#FBBF24',
   INTERVALS: '#A855F7',
+  HILLS: '#FB923C',
   MP: '#00F5A0',
   RACE: '#FFD166',
   REST: '#8A8A98',
@@ -16,8 +17,9 @@ export const typeAccent: Record<WorkoutType, string> = {
 export const typeGradient: Record<WorkoutType, [string, string]> = {
   EASY: ['#00F5A0', '#00C2A8'],
   'LONG RUN': ['#22D3EE', '#3B82F6'],
-  TEMPO: ['#FB923C', '#FBBF24'],
+  TEMPO: ['#FBBF24', '#FB923C'],
   INTERVALS: ['#A855F7', '#FF4D8D'],
+  HILLS: ['#FB923C', '#F97316'],
   MP: ['#00F5A0', '#22D3EE'],
   RACE: ['#FFD166', '#FF7A45'],
   REST: ['#3A3A44', '#26262E'],
@@ -29,6 +31,7 @@ export const typeLabel: Record<WorkoutType, string> = {
   'LONG RUN': 'Long Run',
   TEMPO: 'Tempo',
   INTERVALS: 'Intervals',
+  HILLS: 'Hills',
   MP: 'Marathon Pace',
   RACE: 'Race Day',
   REST: 'Rest',
@@ -41,6 +44,7 @@ export const segmentColor: Record<SegmentType, string> = {
   recovery: '#5B5B67',
   tempo: '#FBBF24',
   interval: '#A855F7',
+  hill: '#FB923C',
   mp_block: '#00F5A0',
 };
 

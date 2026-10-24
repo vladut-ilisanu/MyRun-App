@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../state/store';
 import { StatTile } from '../components/StatTile';
 import { formatFinishTime, formatPaceRange, weekStartMonday } from '../lib/format';
@@ -13,8 +13,11 @@ const zoneColor: Record<PaceZone['key'], string> = {
   interval: '#A855F7',
 };
 
+const HARD_SEGMENTS = new Set(['tempo', 'interval', 'hill', 'mp_block']);
+
 export function ZonesTab() {
-  const { paces, vdot, workouts, synced } = useStore();
+  const { paces, vdot, workouts, synced, profile } = useStore();
+  const [selWeek, setSelWeek] = useState<number | null>(null);
 
   const weekMondays = useMemo(() => {
     const m = new Map<number, string>();
@@ -23,31 +26,46 @@ export function ZonesTab() {
   }, [workouts]);
 
   const totalWeeks = workouts.length ? Math.max(...workouts.map((w) => w.week)) : 0;
+  const isTrail = profile.raceType !== 'Road';
 
   const chart = useMemo(() => {
-    const rows: { week: number; planned: number; actual: number }[] = [];
+    const rows: { week: number; planned: number; actual: number; elevation: number }[] = [];
     for (let week = 1; week <= totalWeeks; week++) {
-      const planned =
-        workouts.filter((w) => w.week === week).reduce((s, w) => s + w.target_distance_meters, 0) /
-        1000;
+      const wk = workouts.filter((w) => w.week === week);
+      const planned = wk.reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
+      const elevation = wk.reduce((s, w) => s + w.elevation_gain_m, 0);
       const monday = weekMondays.get(week);
       const actual = monday
-        ? synced
-            .filter((r) => weekStartMonday(r.local_date) === monday)
-            .reduce((s, r) => s + r.distance_meters, 0) / 1000
+        ? synced.filter((r) => weekStartMonday(r.local_date) === monday).reduce((s, r) => s + r.distance_meters, 0) / 1000
         : 0;
-      rows.push({ week, planned, actual });
+      rows.push({ week, planned, actual, elevation });
     }
     return rows;
   }, [workouts, synced, totalWeeks, weekMondays]);
 
   const maxKm = Math.max(1, ...chart.map((r) => Math.max(r.planned, r.actual)));
+  const maxElev = Math.max(1, ...chart.map((r) => r.elevation));
+
+  // 80/20 intensity split from segment distances.
+  const intensity = useMemo(() => {
+    let easy = 0;
+    let hard = 0;
+    for (const w of workouts)
+      for (const s of w.segments) {
+        if (HARD_SEGMENTS.has(s.type)) hard += s.distance_meters;
+        else easy += s.distance_meters;
+      }
+    const total = easy + hard || 1;
+    return { easyPct: Math.round((easy / total) * 100), hardPct: Math.round((hard / total) * 100) };
+  }, [workouts]);
 
   const equivalents = [
     { label: '5K', time: paces.predicted['5K'] },
     { label: '10K', time: paces.predicted['10K'] },
     { label: 'Half', time: paces.predicted['Half Marathon'] },
   ];
+
+  const sel = selWeek ? chart.find((r) => r.week === selWeek) : null;
 
   return (
     <div className="safe-top px-5 pb-28">
@@ -56,24 +74,15 @@ export function ZonesTab() {
       {/* VDOT + predicted */}
       <div className="rise mt-5 grid grid-cols-2 gap-3">
         <div className="card relative overflow-hidden p-5">
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: 'radial-gradient(120% 100% at 0% 0%, rgba(0,245,160,0.18), rgba(7,7,10,0) 70%)' }}
-          />
+          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 100% at 0% 0%, rgba(0,245,160,0.18), rgba(10,10,18,0) 70%)' }} />
           <div className="relative text-[11px] font-medium uppercase tracking-wider text-dim">VDOT</div>
-          <div className="relative mt-1 tabular text-5xl font-extrabold gradient-text">
-            {vdot.toFixed(1)}
-          </div>
+          <div className="relative mt-1 tabular text-5xl font-extrabold gradient-text">{vdot.toFixed(1)}</div>
           <div className="relative mt-1 text-[11px] text-dim">Daniels fitness score</div>
         </div>
         <div className="card p-5">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-dim">
-            Predicted marathon
-          </div>
-          <div className="mt-1 tabular text-4xl font-extrabold">
-            {formatFinishTime(paces.predicted.Marathon)}
-          </div>
-          <div className="mt-1 text-[11px] text-dim">at current fitness</div>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-dim">Predicted marathon</div>
+          <div className="mt-1 tabular text-4xl font-extrabold">{formatFinishTime(paces.predicted.Marathon)}</div>
+          <div className="mt-1 text-[11px] text-dim">flat-equivalent, current fitness</div>
         </div>
       </div>
 
@@ -84,18 +93,37 @@ export function ZonesTab() {
         ))}
       </div>
 
+      {/* Intensity distribution (80/20) */}
+      <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Training intensity · 80/20</h2>
+      <div className="card p-4">
+        <div className="flex h-5 w-full overflow-hidden rounded-full" style={{ background: '#0c0c14', gap: 2, padding: 2 }}>
+          <div className="rounded-l-full" style={{ width: `${intensity.easyPct}%`, background: '#00C2A8' }} />
+          <div className="rounded-r-full" style={{ width: `${intensity.hardPct}%`, background: '#FBBF24' }} />
+        </div>
+        <div className="mt-3 flex justify-between text-sm">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#00C2A8' }} />
+            <span className="font-bold">{intensity.easyPct}%</span>
+            <span className="text-dim">easy</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#FBBF24' }} />
+            <span className="font-bold">{intensity.hardPct}%</span>
+            <span className="text-dim">quality</span>
+          </span>
+        </div>
+        <p className="mt-2 text-[11px] text-dim">
+          Polarized training: most volume easy, a focused slice hard — the 80/20 split proven to build endurance with low injury risk.
+        </p>
+      </div>
+
       {/* Pace zones */}
-      <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">
-        Training pace zones
-      </h2>
+      <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Training pace zones</h2>
       <div className="card divide-y divide-border overflow-hidden">
         {paces.zones.map((z) => (
           <div key={z.key} className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <span
-                className="h-3 w-3 rounded-full"
-                style={{ background: zoneColor[z.key], boxShadow: `0 0 10px -1px ${zoneColor[z.key]}` }}
-              />
+              <span className="h-3 w-3 rounded-full" style={{ background: zoneColor[z.key], boxShadow: `0 0 10px -1px ${zoneColor[z.key]}` }} />
               <span className="text-sm font-semibold">{z.label}</span>
             </div>
             <span className="tabular rounded-lg bg-bg px-2.5 py-1 text-sm font-semibold" style={{ color: zoneColor[z.key] }}>
@@ -105,40 +133,68 @@ export function ZonesTab() {
         ))}
       </div>
 
-      {/* Mileage chart */}
+      {/* Weekly mileage chart (tap a week) */}
       <div className="mb-2 mt-7 flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-dim">Weekly mileage</h2>
         <div className="flex items-center gap-3 text-[10px] text-dim">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2.5 rounded-sm bg-mint" /> Planned
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2.5 rounded-sm bg-cyan" /> Actual
-          </span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-2.5 rounded-sm bg-mint" /> Planned</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-2.5 rounded-sm bg-cyan" /> Actual</span>
         </div>
       </div>
-      <div className="card no-scrollbar flex items-end gap-1.5 overflow-x-auto p-4">
-        {chart.map((r) => (
-          <div key={r.week} className="flex min-w-[18px] flex-col items-center gap-1.5">
-            <div className="flex h-32 items-end gap-0.5">
-              <div
-                className="w-2 rounded-t-sm bg-mint"
-                style={{ height: `${Math.max(2, (r.planned / maxKm) * 100)}%` }}
-                title={`W${r.week} planned ${r.planned.toFixed(0)}km`}
-              />
-              <div
-                className="w-2 rounded-t-sm"
-                style={{ height: `${Math.max(2, (r.actual / maxKm) * 100)}%`, background: '#22D3EE' }}
-                title={`W${r.week} actual ${r.actual.toFixed(0)}km`}
-              />
-            </div>
-            <span className="tabular text-[9px] text-dim">{r.week}</span>
+      <div className="card p-4">
+        {sel ? (
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-bg px-3 py-2 text-sm">
+            <span className="font-bold">Week {sel.week}</span>
+            <span className="tabular text-dim">
+              <span className="text-mint">{sel.planned.toFixed(0)}</span> planned ·{' '}
+              <span className="text-cyan">{sel.actual.toFixed(0)}</span> actual km
+              {isTrail ? ` · ${sel.elevation} m` : ''}
+            </span>
           </div>
-        ))}
+        ) : (
+          <div className="mb-3 text-[11px] text-dim">Tap a week for details.</div>
+        )}
+        <div className="no-scrollbar flex items-end gap-1.5 overflow-x-auto">
+          {chart.map((r) => (
+            <button
+              key={r.week}
+              onClick={() => setSelWeek(selWeek === r.week ? null : r.week)}
+              className="flex min-w-[18px] flex-col items-center gap-1.5"
+            >
+              <div className="flex h-32 items-end gap-0.5" style={{ opacity: selWeek && selWeek !== r.week ? 0.4 : 1 }}>
+                <div className="w-2 rounded-t-sm bg-mint" style={{ height: `${Math.max(2, (r.planned / maxKm) * 100)}%` }} />
+                <div className="w-2 rounded-t-sm" style={{ height: `${Math.max(2, (r.actual / maxKm) * 100)}%`, background: '#22D3EE' }} />
+              </div>
+              <span className="tabular text-[9px] text-dim">{r.week}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-dim">Peak ~{Math.round(maxKm)} km/week. Prescribed vs. logged from Apple Health.</p>
       </div>
-      <p className="mt-2 text-[11px] text-dim">
-        Peak ~{Math.round(maxKm)} km/week. Prescribed volume vs. what you logged from Apple Health.
-      </p>
+
+      {/* Elevation chart (trail / semi-trail) */}
+      {isTrail && (
+        <>
+          <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">
+            Weekly elevation · {profile.raceType}
+          </h2>
+          <div className="card p-4">
+            <div className="no-scrollbar flex items-end gap-1.5 overflow-x-auto">
+              {chart.map((r) => (
+                <div key={r.week} className="flex min-w-[18px] flex-col items-center gap-1.5">
+                  <div className="flex h-24 items-end">
+                    <div className="w-3 rounded-t-sm" style={{ height: `${Math.max(2, (r.elevation / maxElev) * 100)}%`, background: '#FB923C' }} title={`W${r.week} ${r.elevation} m`} />
+                  </div>
+                  <span className="tabular text-[9px] text-dim">{r.week}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-dim">
+              Prescribed vertical gain per week, building toward your race’s {profile.elevationGainM} m of climbing.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // RunnaPulse service worker — app-shell runtime caching so the installed PWA
 // opens offline (e.g. airplane mode at the start line). Supabase/API calls are
 // never cached (they are cross-origin POSTs and must hit the network).
-const CACHE = 'runnapulse-v1';
+const CACHE = 'myrun-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

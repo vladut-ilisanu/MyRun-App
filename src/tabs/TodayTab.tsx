@@ -63,7 +63,10 @@ export function TodayTab() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="rise" style={{ animationDelay: '0ms' }}>
-          <div className="text-sm font-medium text-dim">{phaseLabel} phase · Week {currentWeek}</div>
+          <div className="text-sm font-medium text-dim">
+            {phaseLabel} phase · Week {currentWeek}
+            {profile.raceType !== 'Road' ? ` · ${profile.raceType}` : ''}
+          </div>
           <div className="mt-0.5 flex items-baseline gap-2">
             <span className="tabular text-5xl font-extrabold tracking-tight">{weeksToGoal}</span>
             <span className="pb-1 text-base font-semibold text-dim">
@@ -106,9 +109,10 @@ export function TodayTab() {
           </div>
           <div className="mt-2 flex items-center gap-4 text-sm text-white/60">
             <span className="tabular">~{formatDuration(todaysWorkout.estimated_duration_seconds)}</span>
-            <span className="tabular">
-              avg {formatPace(todaysWorkout.target_avg_pace_sec)}
-            </span>
+            <span className="tabular">avg {formatPace(todaysWorkout.target_avg_pace_sec)}</span>
+            {todaysWorkout.elevation_gain_m > 0 && (
+              <span className="tabular">↑{todaysWorkout.elevation_gain_m} m</span>
+            )}
           </div>
           <div className="mt-4">
             <SegmentBar segments={todaysWorkout.segments} height={12} />

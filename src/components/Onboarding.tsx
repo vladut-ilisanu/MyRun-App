@@ -1,16 +1,33 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowRight, ArrowLeft, Activity, Check } from 'lucide-react';
-import type { Profile, RaceDistance } from '../types';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Activity,
+  Check,
+  Route,
+  Mountain,
+  MountainSnow,
+} from 'lucide-react';
+import type { Profile, RaceDistance, RaceType } from '../types';
 import { DEFAULT_PROFILE } from '../lib/storage';
 import { weeksUntilRace } from '../lib/planGenerator';
 import { formatFinishTime } from '../lib/format';
+import { Slider } from './Slider';
 
 const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
+
+const TERRAINS: { type: RaceType; icon: typeof Route; desc: string }[] = [
+  { type: 'Road', icon: Route, desc: 'Flat / road marathon' },
+  { type: 'Semi-trail', icon: Mountain, desc: 'Mixed terrain, rolling climbs' },
+  { type: 'Trail', icon: MountainSnow, desc: 'Off-road, serious climbing' },
+];
 
 function hms(total: number) {
   const t = Math.max(0, Math.round(total));
   return { h: Math.floor(t / 3600), m: Math.floor((t % 3600) / 60), s: t % 60 };
 }
+
+const TOTAL = 6; // steps 1..6 (0 is welcome)
 
 export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void }) {
   const [step, setStep] = useState(0);
@@ -29,13 +46,11 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
 
   const recentSecs = (Number(rh) || 0) * 3600 + (Number(rm) || 0) * 60 + (Number(rs) || 0);
   const goalSecs = (Number(gh) || 0) * 3600 + (Number(gm) || 0) * 60 + (Number(gs) || 0);
-
-  const TOTAL = 5; // steps 1..5 (0 is welcome)
   const weeks = weeksUntilRace(draft.goalRaceDate);
 
   const canNext = (): boolean => {
-    if (step === 2) return recentSecs > 0;
-    if (step === 3) return draft.currentWeeklyMileageKm > 0;
+    if (step === 3) return recentSecs > 0;
+    if (step === 4) return draft.currentWeeklyMileageKm > 0;
     return true;
   };
 
@@ -47,21 +62,19 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
     });
   };
 
-  const input =
-    'mt-2 w-full rounded-xl bg-card px-4 py-3 text-base outline-none focus:border-mint';
-  const inputStyle = { border: '1px solid #242430' } as const;
+  const input = 'mt-2 w-full rounded-xl bg-card px-4 py-3 text-base outline-none focus:border-mint';
+  const inputStyle = { border: '1px solid #272734' } as const;
   const timeBox = 'w-16 rounded-xl bg-card px-2 py-3 text-center text-lg tabular';
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-      {/* progress */}
       {step > 0 && (
         <div className="safe-top flex gap-1.5 px-5">
           {Array.from({ length: TOTAL }).map((_, i) => (
             <div
               key={i}
               className="h-1 flex-1 rounded-full transition-colors"
-              style={{ background: i < step ? '#00F5A0' : '#242430' }}
+              style={{ background: i < step ? '#00F5A0' : '#272734' }}
             />
           ))}
         </div>
@@ -76,9 +89,9 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             >
               <Activity size={40} color="#061012" strokeWidth={2.5} />
             </div>
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight">RunnaPulse</h1>
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight">MyRun</h1>
             <p className="mt-3 max-w-xs text-base text-dim">
-              A documented, science-based marathon plan built around your race date and your
+              A documented, science-based road or trail plan built around your race, terrain and
               current fitness. Let’s set yours up.
             </p>
           </div>
@@ -101,6 +114,57 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
         )}
 
         {step === 2 && (
+          <Q title="What’s the terrain?" sub="Trail and semi-trail plans add hill work and prescribe vertical gain.">
+            <div className="space-y-3">
+              {TERRAINS.map(({ type, icon: Icon, desc }) => {
+                const active = draft.raceType === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => set('raceType', type)}
+                    className="press flex w-full items-center gap-4 rounded-2xl p-4 text-left"
+                    style={{
+                      background: active ? 'rgba(0,245,160,0.1)' : '#16161F',
+                      border: active ? '1px solid #00F5A0' : '1px solid #272734',
+                    }}
+                  >
+                    <div
+                      className="grid h-11 w-11 place-items-center rounded-xl"
+                      style={{ background: active ? 'rgba(0,245,160,0.18)' : '#1D1D28' }}
+                    >
+                      <Icon size={22} color={active ? '#00F5A0' : '#8C8C9E'} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold">{type}</div>
+                      <div className="text-xs text-dim">{desc}</div>
+                    </div>
+                    {active && <Check size={18} className="text-mint" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {draft.raceType !== 'Road' && (
+              <div className="mt-6">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-medium text-dim">Total elevation gain</span>
+                  <span className="tabular text-2xl font-extrabold text-mint">
+                    {draft.elevationGainM} m
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <Slider value={draft.elevationGainM} min={0} max={3000} step={50} onChange={(v) => set('elevationGainM', v)} />
+                </div>
+                <div className="mt-1 flex justify-between text-[11px] text-dim">
+                  <span>0 m</span>
+                  <span>3000 m</span>
+                </div>
+              </div>
+            )}
+          </Q>
+        )}
+
+        {step === 3 && (
           <Q title="How fit are you right now?" sub="Your most recent race — this sets your exact training paces (VDOT).">
             <label className="block text-sm font-medium text-dim">
               Recent race distance
@@ -122,13 +186,23 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           </Q>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <Q title="Your current running" sub="So the plan starts where you actually are, then builds safely.">
-            <label className="block text-sm font-medium text-dim">
-              Current weekly distance (km)
-              <input className={input} style={inputStyle} inputMode="numeric" value={draft.currentWeeklyMileageKm || ''} onChange={(e) => set('currentWeeklyMileageKm', Number(e.target.value) || 0)} />
-            </label>
-            <div className="mt-5 text-sm font-medium text-dim">Runs per week</div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-dim">Current weekly distance</span>
+              <span className="tabular text-2xl font-extrabold text-mint">
+                {draft.currentWeeklyMileageKm} km
+              </span>
+            </div>
+            <div className="mt-3">
+              <Slider value={draft.currentWeeklyMileageKm} min={10} max={120} step={1} onChange={(v) => set('currentWeeklyMileageKm', v)} />
+            </div>
+            <div className="mt-1 flex justify-between text-[11px] text-dim">
+              <span>10 km</span>
+              <span>120 km</span>
+            </div>
+
+            <div className="mt-6 text-sm font-medium text-dim">Runs per week</div>
             <div className="mt-2 flex gap-2">
               {[3, 4, 5, 6].map((n) => (
                 <button
@@ -136,8 +210,8 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
                   onClick={() => set('runsPerWeek', n as Profile['runsPerWeek'])}
                   className="press flex-1 rounded-xl py-3 text-lg font-bold"
                   style={{
-                    background: draft.runsPerWeek === n ? 'rgba(0,245,160,0.14)' : '#15151B',
-                    border: draft.runsPerWeek === n ? '1px solid #00F5A0' : '1px solid #242430',
+                    background: draft.runsPerWeek === n ? 'rgba(0,245,160,0.14)' : '#16161F',
+                    border: draft.runsPerWeek === n ? '1px solid #00F5A0' : '1px solid #272734',
                     color: draft.runsPerWeek === n ? '#00F5A0' : '#fff',
                   }}
                 >
@@ -148,8 +222,8 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           </Q>
         )}
 
-        {step === 4 && (
-          <Q title="A couple of preferences" sub="When you like to do your long run, and an optional goal time.">
+        {step === 5 && (
+          <Q title="A couple of preferences" sub="When you like your long run, and an optional goal time.">
             <div className="text-sm font-medium text-dim">Long run day</div>
             <div className="mt-2 flex gap-2">
               {(['Saturday', 'Sunday'] as const).map((d) => (
@@ -158,8 +232,8 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
                   onClick={() => set('longRunDay', d)}
                   className="press flex-1 rounded-xl py-3 font-semibold"
                   style={{
-                    background: draft.longRunDay === d ? 'rgba(0,245,160,0.14)' : '#15151B',
-                    border: draft.longRunDay === d ? '1px solid #00F5A0' : '1px solid #242430',
+                    background: draft.longRunDay === d ? 'rgba(0,245,160,0.14)' : '#16161F',
+                    border: draft.longRunDay === d ? '1px solid #00F5A0' : '1px solid #272734',
                     color: draft.longRunDay === d ? '#00F5A0' : '#fff',
                   }}
                 >
@@ -181,10 +255,11 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           </Q>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <Q title="Ready to build your plan" sub="Review your details — you can change any of this later in Setup.">
             <div className="card divide-y divide-border">
               <Row k="Goal race" v={`${draft.goalRaceName} · ${draft.goalRaceDate}`} />
+              <Row k="Terrain" v={draft.raceType + (draft.raceType !== 'Road' ? ` · ${draft.elevationGainM} m` : '')} />
               <Row k="Block length" v={`${weeks} weeks`} />
               <Row k="Recent race" v={`${draft.recentRaceDistance} · ${formatFinishTime(recentSecs)}`} />
               <Row k="Current volume" v={`${draft.currentWeeklyMileageKm} km/week`} />
@@ -196,19 +271,18 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
         )}
       </div>
 
-      {/* bottom actions */}
       <div className="tabbar flex items-center gap-3 px-6 pt-3">
         {step > 0 && (
           <button
             onClick={() => setStep((s) => s - 1)}
             className="press grid h-12 w-12 place-items-center rounded-2xl bg-card"
-            style={{ border: '1px solid #242430' }}
+            style={{ border: '1px solid #272734' }}
             aria-label="Back"
           >
             <ArrowLeft size={20} />
           </button>
         )}
-        {step < 5 ? (
+        {step < TOTAL ? (
           <button
             onClick={() => canNext() && setStep((s) => s + 1)}
             disabled={!canNext()}

@@ -53,13 +53,16 @@ export function WorkoutSheet({
             </button>
           </div>
           <h1 className="relative mt-4 text-3xl font-extrabold tracking-tight">{workout.title}</h1>
-          <div className="relative mt-3 flex gap-6">
+          <div className="relative mt-3 flex gap-5">
             <HeaderStat value={metersToKm(workout.target_distance_meters)} unit="km" label="Distance" />
             <HeaderStat
               value={formatDuration(workout.estimated_duration_seconds)}
               label="Est. time"
             />
             <HeaderStat value={formatPace(workout.target_avg_pace_sec).replace('/km', '')} unit="/km" label="Avg pace" />
+            {workout.elevation_gain_m > 0 && (
+              <HeaderStat value={String(workout.elevation_gain_m)} unit="m" label="Climb" />
+            )}
           </div>
         </div>
 

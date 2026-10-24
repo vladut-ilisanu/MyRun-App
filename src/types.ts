@@ -2,6 +2,8 @@
 
 export type RaceDistance = '5K' | '10K' | 'Half Marathon' | 'Marathon';
 
+export type RaceType = 'Road' | 'Semi-trail' | 'Trail';
+
 export type SegmentType =
   | 'warmup'
   | 'interval'
@@ -9,6 +11,7 @@ export type SegmentType =
   | 'mp_block'
   | 'easy'
   | 'recovery'
+  | 'hill'
   | 'cooldown';
 
 export interface WorkoutSegment {
@@ -24,7 +27,15 @@ export interface WorkoutSegment {
   notes?: string;
 }
 
-export type WorkoutType = 'EASY' | 'LONG RUN' | 'TEMPO' | 'INTERVALS' | 'MP' | 'RACE' | 'REST';
+export type WorkoutType =
+  | 'EASY'
+  | 'LONG RUN'
+  | 'TEMPO'
+  | 'INTERVALS'
+  | 'HILLS'
+  | 'MP'
+  | 'RACE'
+  | 'REST';
 
 export type WeekPhase = 'Base' | 'Build I' | 'Build II' | 'Peak' | 'Taper' | 'Deload';
 
@@ -40,6 +51,7 @@ export interface PlannedWorkout {
   target_distance_meters: number;
   target_avg_pace_sec: number; // representative avg pace sec/km
   estimated_duration_seconds: number;
+  elevation_gain_m: number; // prescribed vertical gain (trail/semi-trail plans)
   segments: WorkoutSegment[];
   rationale: string; // "why this workout" — documented coaching note
   completed: boolean;
@@ -58,6 +70,8 @@ export interface WeekSummary {
 export interface Profile {
   goalRaceName: string;
   goalRaceDate: string; // YYYY-MM-DD
+  raceType: RaceType;
+  elevationGainM: number; // total ascent of the goal race
   recentRaceDistance: RaceDistance;
   recentRaceTimeSeconds: number;
   goalFinishTimeSeconds: number | null;

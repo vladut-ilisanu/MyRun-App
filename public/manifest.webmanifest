@@ -1,13 +1,13 @@
 {
-  "name": "RunnaPulse",
-  "short_name": "RunnaPulse",
-  "description": "Free Runna-style marathon training with Jack Daniels VDOT pacing.",
+  "name": "MyRun",
+  "short_name": "MyRun",
+  "description": "Free marathon & trail training with Jack Daniels VDOT pacing.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#07070A",
-  "theme_color": "#07070A",
+  "background_color": "#0A0A12",
+  "theme_color": "#0A0A12",
   "icons": [
     {
       "src": "./icon-192.png",

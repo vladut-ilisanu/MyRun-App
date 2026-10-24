@@ -5,7 +5,8 @@ import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
 import { SCHEMA_SQL } from '../lib/schemaSql';
 import { toISODate } from '../lib/format';
-import type { Profile, RaceDistance } from '../types';
+import { Slider } from '../components/Slider';
+import type { Profile, RaceDistance, RaceType } from '../types';
 
 function hmsToSeconds(h: string, m: string, s: string): number {
   return (Number(h) || 0) * 3600 + (Number(m) || 0) * 60 + (Number(s) || 0);
@@ -142,6 +143,37 @@ export function SetupTab() {
           </label>
 
           <div className={label}>
+            Terrain
+            <div className="mt-2 flex gap-2">
+              {(['Road', 'Semi-trail', 'Trail'] as RaceType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => update('raceType', t)}
+                  className="press flex-1 rounded-xl py-2.5 text-sm font-semibold"
+                  style={{
+                    background: form.raceType === t ? 'rgba(0,245,160,0.14)' : '#0A0A12',
+                    border: form.raceType === t ? '1px solid #00F5A0' : '1px solid #272734',
+                    color: form.raceType === t ? '#00F5A0' : '#fff',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          {form.raceType !== 'Road' && (
+            <div className={label}>
+              <div className="flex items-baseline justify-between">
+                <span>Total elevation gain</span>
+                <span className="tabular text-base font-bold text-mint">{form.elevationGainM} m</span>
+              </div>
+              <div className="mt-2">
+                <Slider value={form.elevationGainM} min={0} max={3000} step={50} onChange={(v) => update('elevationGainM', v)} />
+              </div>
+            </div>
+          )}
+
+          <div className={label}>
             Recent race
             <select
               className={input}
@@ -177,26 +209,33 @@ export function SetupTab() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <label className={`${label} flex-1`}>
-              Runs / week
-              <select
-                className={input}
-                style={inputStyle}
-                value={form.runsPerWeek}
-                onChange={(e) => update('runsPerWeek', Number(e.target.value) as Profile['runsPerWeek'])}
-              >
-                {[3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={`${label} flex-1`}>
-              Current km / week
-              <input className={input} style={inputStyle} inputMode="numeric" value={form.currentWeeklyMileageKm} onChange={(e) => update('currentWeeklyMileageKm', Number(e.target.value) || 0)} />
-            </label>
+          <div className={label}>
+            <div className="flex items-baseline justify-between">
+              <span>Current weekly distance</span>
+              <span className="tabular text-base font-bold text-mint">{form.currentWeeklyMileageKm} km</span>
+            </div>
+            <div className="mt-2">
+              <Slider value={form.currentWeeklyMileageKm} min={10} max={120} step={1} onChange={(v) => update('currentWeeklyMileageKm', v)} />
+            </div>
+          </div>
+          <div className={label}>
+            Runs per week
+            <div className="mt-2 flex gap-2">
+              {[3, 4, 5, 6].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => update('runsPerWeek', n as Profile['runsPerWeek'])}
+                  className="press flex-1 rounded-xl py-2.5 text-base font-bold"
+                  style={{
+                    background: form.runsPerWeek === n ? 'rgba(0,245,160,0.14)' : '#0A0A12',
+                    border: form.runsPerWeek === n ? '1px solid #00F5A0' : '1px solid #272734',
+                    color: form.runsPerWeek === n ? '#00F5A0' : '#fff',
+                  }}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
 
           <label className={label}>
@@ -314,7 +353,7 @@ export function SetupTab() {
       </section>
 
       <p className="mt-7 text-center text-[11px] text-dim">
-        RunnaPulse · your data lives on this device; Supabase is an optional cloud backup.
+        MyRun · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );

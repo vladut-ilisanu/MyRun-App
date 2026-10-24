@@ -130,6 +130,10 @@ export function generatePlan(profile: Profile): GeneratedPlan {
   const weeks = classifyWeeks(totalWeeks);
   const peakWeek = weeks.find((w) => w.isPeak)!.week;
 
+  // Terrain: trail / semi-trail plans add hill work and prescribe vertical gain.
+  const isTrail = profile.raceType !== 'Road';
+  const elevPerKm = profile.elevationGainM > 0 ? profile.elevationGainM / 42.195 : 0;
+
   // Seeded distances (km).
   const startKm = clamp(profile.currentWeeklyMileageKm, 15, 120);
   const lrStart = clamp(Math.round(startKm * 0.42), 12, 20);
@@ -188,7 +192,7 @@ export function generatePlan(profile: Profile): GeneratedPlan {
     // Quality sessions.
     for (let qi = 0; qi < qualityCount; qi++) {
       const dayIdx = days.quality[qi];
-      pushQuality(workouts, wc, weekMon, dayIdx, qi, deloadScale, z, mpBand);
+      pushQuality(workouts, wc, weekMon, dayIdx, qi, deloadScale, z, mpBand, isTrail);
     }
 
     // Easy runs.
@@ -204,6 +208,18 @@ export function generatePlan(profile: Profile): GeneratedPlan {
         z('easy'),
         '80/20 aerobic base volume — easy, conversational effort to build mitochondrial density without fatigue.'
       );
+    }
+  }
+
+  // ---- prescribe vertical gain per workout (trail / semi-trail only) ----
+  if (isTrail && elevPerKm > 0) {
+    for (const w of workouts) {
+      const km = w.target_distance_meters / 1000;
+      if (w.type === 'RACE') w.elevation_gain_m = Math.round(profile.elevationGainM);
+      else if (w.type === 'HILLS') w.elevation_gain_m = Math.round(km * elevPerKm * 2.2);
+      else if (w.type === 'LONG RUN') w.elevation_gain_m = Math.round(km * elevPerKm * 1.1);
+      else if (w.type === 'MP') w.elevation_gain_m = Math.round(km * elevPerKm * 0.9);
+      else w.elevation_gain_m = Math.round(km * elevPerKm * 0.7);
     }
   }
 
@@ -264,6 +280,7 @@ function finalize(
     target_distance_meters: Math.round(s.distance),
     target_avg_pace_sec: Math.round(s.avgPace),
     estimated_duration_seconds: Math.round(s.duration),
+    elevation_gain_m: 0, // assigned in the post-process pass below
     segments,
     rationale,
     completed: false,
@@ -361,7 +378,8 @@ function pushQuality(
   qi: number,
   deloadScale: number,
   z: ZoneFn,
-  mpBand: { min: number; max: number }
+  mpBand: { min: number; max: number },
+  isTrail: boolean
 ) {
   const easy = z('easy');
   const warm = (n: number) =>
@@ -396,9 +414,34 @@ function pushQuality(
   const interval = z('interval');
   const tempo = z('tempo');
 
-  const isIntervalSlot = wc.phase === 'Base' || (qi === 1) || wc.phase === 'Peak';
+  const trailHillSlot =
+    isTrail &&
+    qi === 0 &&
+    (wc.phase === 'Build I' || wc.phase === 'Build II' || wc.phase === 'Peak');
+  const isIntervalSlot = wc.phase === 'Base' || qi === 1 || wc.phase === 'Peak';
 
-  if (isIntervalSlot) {
+  if (trailHillSlot) {
+    type = 'HILLS';
+    const reps = wc.phase === 'Peak' ? 10 : 8;
+    const repM = 400;
+    title = `${reps} x 400m hill repeats`;
+    work = seg(
+      {
+        type: 'hill',
+        title,
+        distance_meters: reps * repM,
+        reps,
+        rep_distance_meters: repM,
+        rest_seconds: 120,
+        target_pace_min_sec: interval.min_sec,
+        target_pace_max_sec: interval.max_sec,
+        notes: 'Uphill at ~5K effort (pace is a guide — effort matters on hills). Jog down to recover.',
+      },
+      `w${wc.week}-d${dayIdx}-hill-0`
+    );
+    rationale =
+      'Hill repeats build leg strength, power and running economy, and prepare your legs for the sustained climbs and descents of a trail / semi-trail race. Drive the uphill at hard (~5K) effort and jog the downhill to recover.';
+  } else if (isIntervalSlot) {
     type = 'INTERVALS';
     const reps = wc.phase === 'Base' ? 6 : 6;
     const repM = wc.phase === 'Base' ? 800 : 1000;
