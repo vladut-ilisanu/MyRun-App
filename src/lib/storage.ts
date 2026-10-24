@@ -68,6 +68,15 @@ export const storage = {
 
   loadOnboarded: (): boolean => readString(K.onboarded) === '1',
   setOnboarded: () => writeString(K.onboarded, '1'),
+
+  /** Wipe plan, runs and onboarding (keeps Supabase credentials) to start fresh. */
+  resetAll: () => {
+    try {
+      [K.profile, K.workouts, K.synced, K.onboarded].forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
+  },
 };
 
 export const DEFAULT_PROFILE: Profile = {

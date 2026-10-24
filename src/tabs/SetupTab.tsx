@@ -352,7 +352,24 @@ export function SetupTab() {
         </div>
       </section>
 
-      <p className="mt-7 text-center text-[11px] text-dim">
+      <button
+        onClick={() => {
+          if (
+            window.confirm(
+              'Start over? This clears your plan and re-runs onboarding. Your Supabase keys are kept.'
+            )
+          ) {
+            storage.resetAll();
+            window.location.reload();
+          }
+        }}
+        className="press mt-7 w-full rounded-2xl py-3 text-sm font-semibold text-amber"
+        style={{ border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.08)' }}
+      >
+        Start over (re-run onboarding)
+      </button>
+
+      <p className="mt-5 text-center text-[11px] text-dim">
         MyRun · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>

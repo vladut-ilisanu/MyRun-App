@@ -159,55 +159,47 @@ export function generatePlan(profile: Profile): GeneratedPlan {
       continue;
     }
 
+    // ----- week volume scale (deload & taper reduce volume) -----
+    const taperOrder = wc.isTaper ? wc.week - peakWeek : 0; // 1 = first taper week
+    let weekScale = 1;
+    if (wc.isDeload) weekScale = DELOAD;
+    else if (wc.isTaper) weekScale = taperOrder === 1 ? 0.6 : 0.45; // final 2 weeks: very light
+
     // ----- long run distance for this week -----
     const rampWeeks = Math.max(1, peakWeek - 1);
     const p = clamp((wc.week - 1) / rampWeeks, 0, 1); // 0..1 up to peak
     let lrKm = Math.round(lrStart + (lrPeak - lrStart) * p);
     if (wc.isDeload) lrKm = Math.round(lrKm * DELOAD);
-    if (wc.isTaper) {
-      // Taper weeks after peak: step down toward race.
-      const taperOrder = wc.week - peakWeek; // 1,2,...
-      const factor = taperOrder === 1 ? 0.66 : 0.4;
-      lrKm = Math.round(lrPeak * factor);
-    }
+    if (wc.isTaper) lrKm = Math.round(lrPeak * (taperOrder === 1 ? 0.55 : 0.35));
     if (wc.isPeak) lrKm = lrPeak;
-    lrKm = clamp(lrKm, 10, 34);
+    lrKm = clamp(lrKm, 8, 34);
 
-    // MP block inside the long run (race specificity).
+    // MP block inside the long run (none during taper — keep it easy).
     let mpBlockKm = 0;
     if (wc.isPeak) mpBlockKm = 13;
     else if (wc.phase === 'Build II') mpBlockKm = 9;
     else if (wc.phase === 'Build I') mpBlockKm = wc.week >= peakWeek - 4 ? 5 : 0;
 
-    const deloadScale = wc.isDeload ? DELOAD : 1;
-
-    // ----- session allocation for the week -----
-    const qualityCount = decideQualityCount(wc, profile.runsPerWeek);
+    // ----- session allocation (taper = easy recovery running only) -----
+    const qualityCount = wc.isTaper ? 0 : decideQualityCount(wc, profile.runsPerWeek);
     const easyCount = Math.max(0, profile.runsPerWeek - 1 - qualityCount);
     const days = allocateDays(longRunIdx, qualityCount, easyCount);
 
     // Long run.
     pushLongRun(workouts, wc, weekMon, longRunIdx, lrKm, mpBlockKm, z, mpBand);
 
-    // Quality sessions.
+    // Quality sessions (never during the taper).
     for (let qi = 0; qi < qualityCount; qi++) {
-      const dayIdx = days.quality[qi];
-      pushQuality(workouts, wc, weekMon, dayIdx, qi, deloadScale, z, mpBand, isTrail);
+      pushQuality(workouts, wc, weekMon, days.quality[qi], qi, weekScale, z, mpBand, isTrail);
     }
 
     // Easy runs.
+    const easyRationale = wc.isTaper
+      ? 'Taper — very light, easy recovery running only. Volume is cut hard so you arrive on race day fresh; your fitness is already banked.'
+      : '80/20 aerobic base volume — easy, conversational effort to build aerobic fitness without fatigue.';
     for (let ei = 0; ei < easyCount; ei++) {
-      const dayIdx = days.easy[ei];
-      const dist = Math.round(easyKm * deloadScale) * 1000;
-      pushEasy(
-        workouts,
-        wc,
-        weekMon,
-        dayIdx,
-        Math.max(4000, dist),
-        z('easy'),
-        '80/20 aerobic base volume — easy, conversational effort to build mitochondrial density without fatigue.'
-      );
+      const dist = Math.round(easyKm * weekScale) * 1000;
+      pushEasy(workouts, wc, weekMon, days.easy[ei], Math.max(4000, dist), z('easy'), easyRationale);
     }
   }
 
@@ -366,7 +358,11 @@ function pushLongRun(
     'LONG RUN',
     `Long Run · ${lrKm}km`,
     segments,
-    wc.isDeload ? `Deload long run (${lrKm}km) — reduced distance lets connective tissue adapt before the next load block.` : rationale
+    wc.isTaper
+      ? `Taper long run (${lrKm}km) — kept short and fully easy so your legs are fresh and rested for race day.`
+      : wc.isDeload
+        ? `Deload long run (${lrKm}km) — reduced distance lets connective tissue adapt before the next load block.`
+        : rationale
   );
 }
 
