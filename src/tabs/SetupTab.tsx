@@ -115,7 +115,7 @@ export function SetupTab() {
       return;
     }
     await simulateRun(km, sec, simDate);
-    setSimMsg(`Simulated ${km} km on ${simDate} — check the Today tab.`);
+    setSimMsg(`Test run added (${km} km on ${simDate}) — check Today/Calendar. Test only: it clears on refresh.`);
     setTimeout(() => setSimMsg(''), 3000);
   };
 
@@ -466,7 +466,7 @@ export function SetupTab() {
       </button>
 
       <p className="mt-5 text-center text-[11px] text-dim">
-        MyRun · your data lives on this device; Supabase is an optional cloud backup.
+        MyRun v4 · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );

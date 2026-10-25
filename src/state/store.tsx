@@ -17,7 +17,6 @@ import {
   backupPlan,
   fetchSyncedWorkouts,
   fetchUserPlan,
-  insertSyncedWorkout,
   isConfigured,
   getCurrentUser,
   onAuthChange,
@@ -30,6 +29,9 @@ import {
 } from '../lib/supabaseClient';
 import { normalizeHealthPayload } from '../lib/workoutMatcher';
 import { toISODate, mondayIndex, parseISODate } from '../lib/format';
+
+/** Runs created by the "Simulate" tester are tagged with this and never persist. */
+const SIM_SOURCE = 'Simulated (test)';
 
 interface StoreValue {
   profile: Profile;
@@ -99,8 +101,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ...DEFAULT_PROFILE,
     ...(storage.loadProfile() ?? {}),
   }));
-  const [workouts, setWorkouts] = useState<PlannedWorkout[]>(() => storage.loadWorkouts());
-  const [synced, setSynced] = useState<SyncedWorkout[]>(() => storage.loadSynced());
+  // Simulated test runs are never persisted across a refresh.
+  const [synced, setSynced] = useState<SyncedWorkout[]>(() =>
+    storage.loadSynced().filter((r) => r.source !== SIM_SOURCE)
+  );
+  const [workouts, setWorkouts] = useState<PlannedWorkout[]>(() => {
+    const w = storage.loadWorkouts();
+    if (!w.length) return w;
+    const real = storage.loadSynced().filter((r) => r.source !== SIM_SOURCE);
+    return applyMatching(w, real).workouts; // recompute completions from real runs only
+  });
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [supabaseConfigured, setSupabaseConfigured] = useState<boolean>(() => isConfigured());
@@ -194,30 +204,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const syncHealth = useCallback(async () => {
     setSyncing(true);
+    const start = Date.now();
     try {
       const remote = await fetchSyncedWorkouts();
       if (remote.length > 0) ingest(remote.map((r) => ({ ...r })));
       setLastSynced(new Date().toISOString());
     } finally {
+      // Keep the spinner visible long enough to register as feedback.
+      const elapsed = Date.now() - start;
+      if (elapsed < 750) await new Promise((r) => setTimeout(r, 750 - elapsed));
       setSyncing(false);
     }
   }, [ingest]);
 
+  // A simulated run is TEST-ONLY: shown in memory so you can see the pipeline
+  // work, tagged SIM_SOURCE and never persisted — it clears on the next refresh.
   const simulateRun = useCallback(
     async (distanceKm: number, durationSeconds: number, dateISO: string) => {
-      const run = normalizeHealthPayload({
-        distance: distanceKm, // < 100 -> treated as km
-        duration_seconds: durationSeconds,
-        local_date: dateISO,
-        start_time: `${dateISO}T08:00:00`,
-        avg_heart_rate: 152,
-        active_calories: Math.round(distanceKm * 62),
-      });
-      if (isConfigured()) await insertSyncedWorkout(run);
-      ingest([run]);
+      const run: SyncedWorkout = {
+        ...normalizeHealthPayload({
+          distance: distanceKm,
+          duration_seconds: durationSeconds,
+          local_date: dateISO,
+          start_time: `${dateISO}T08:00:00`,
+          avg_heart_rate: 152,
+          active_calories: Math.round(distanceKm * 62),
+        }),
+        source: SIM_SOURCE,
+      };
+      const merged = dedupeByExternalId([...synced, run]);
+      const matched = applyMatching(workouts, merged);
+      setWorkouts(matched.workouts); // in-memory only — not saved to storage/cloud
+      setSynced(matched.synced);
       setLastSynced(new Date().toISOString());
     },
-    [ingest]
+    [synced, workouts]
   );
 
   const markComplete = useCallback(
