@@ -53,6 +53,8 @@ interface StoreValue {
   regenerate: (p: Profile) => void;
   syncHealth: () => Promise<void>;
   simulateRun: (distanceKm: number, durationSeconds: number, dateISO: string) => Promise<void>;
+  clearSimulated: () => void;
+  hasSimulated: boolean;
   markComplete: (workoutId: string, completed: boolean) => void;
   reschedule: (workoutId: string, dateISO: string) => void;
   relink: (externalId: string, workoutId: string | null) => void;
@@ -241,6 +243,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [synced, workouts]
   );
 
+  // Remove any simulated test runs immediately (in-memory, matches recomputed).
+  const clearSimulated = useCallback(() => {
+    const real = synced.filter((r) => r.source !== SIM_SOURCE);
+    const matched = applyMatching(workouts, real);
+    setWorkouts(matched.workouts);
+    setSynced(matched.synced);
+  }, [synced, workouts]);
+
   const markComplete = useCallback(
     (workoutId: string, completed: boolean) => {
       const next = workouts.map((w) => (w.id === workoutId ? { ...w, completed } : w));
@@ -348,6 +358,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     regenerate,
     syncHealth,
     simulateRun,
+    clearSimulated,
+    hasSimulated: synced.some((r) => r.source === SIM_SOURCE),
     markComplete,
     reschedule,
     relink,

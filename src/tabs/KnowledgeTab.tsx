@@ -27,7 +27,7 @@ const UL = ({ children }: { children: ReactNode }) => (
 
 export function KnowledgeTab() {
   const { workouts, profile, paces, vdot } = useStore();
-  const [open, setOpen] = useState<string | null>('overview');
+  const [open, setOpen] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const totalWeeks = workouts.length ? Math.max(...workouts.map((w) => w.week)) : 0;

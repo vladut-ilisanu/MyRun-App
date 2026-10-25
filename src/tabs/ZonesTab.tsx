@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../state/store';
-import { StatTile } from '../components/StatTile';
 import { RunCharts } from '../components/RunCharts';
 import { formatFinishTime, formatPaceRange, weekStartMonday } from '../lib/format';
 import type { PaceZone } from '../types';
@@ -19,6 +18,7 @@ const HARD_SEGMENTS = new Set(['tempo', 'interval', 'hill', 'mp_block']);
 export function ZonesTab() {
   const { paces, vdot, workouts, synced, profile } = useStore();
   const [selWeek, setSelWeek] = useState<number | null>(null);
+  const [selElevWeek, setSelElevWeek] = useState<number | null>(null);
 
   const weekMondays = useMemo(() => {
     const m = new Map<number, string>();
@@ -67,6 +67,7 @@ export function ZonesTab() {
   ];
 
   const sel = selWeek ? chart.find((r) => r.week === selWeek) : null;
+  const selElev = selElevWeek ? chart.find((r) => r.week === selElevWeek) : null;
 
   // Live progress vs plan (uses actually-logged runs).
   const progress = useMemo(() => {
@@ -142,16 +143,19 @@ export function ZonesTab() {
           <div className="relative mt-1 text-[11px] text-dim">Daniels fitness score</div>
         </div>
         <div className="card p-5">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-dim">Predicted marathon</div>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-dim">Marathon</div>
           <div className="mt-1 tabular text-4xl font-extrabold">{formatFinishTime(paces.predicted.Marathon)}</div>
-          <div className="mt-1 text-[11px] text-dim">flat-equivalent, current fitness</div>
+          <div className="mt-1 text-[11px] text-dim">predicted · current fitness</div>
         </div>
       </div>
 
-      {/* Equivalents */}
+      {/* Equivalent race times */}
       <div className="rise mt-3 grid grid-cols-3 gap-3" style={{ animationDelay: '60ms' }}>
         {equivalents.map((e) => (
-          <StatTile key={e.label} value={formatFinishTime(e.time)} label={e.label} />
+          <div key={e.label} className="card p-3 text-center">
+            <div className="tabular text-lg font-extrabold leading-tight">{formatFinishTime(e.time)}</div>
+            <div className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-dim">{e.label}</div>
+          </div>
         ))}
       </div>
 
@@ -259,14 +263,26 @@ export function ZonesTab() {
             Weekly elevation · {profile.raceType}
           </h2>
           <div className="card p-4">
+            {selElev ? (
+              <div className="mb-3 flex items-center justify-between rounded-xl bg-bg px-3 py-2 text-sm">
+                <span className="font-bold">Week {selElev.week}</span>
+                <span className="tabular" style={{ color: '#FB923C' }}>{selElev.elevation} m climbing</span>
+              </div>
+            ) : (
+              <div className="mb-3 text-[11px] text-dim">Tap a week for its vertical gain.</div>
+            )}
             <div className="no-scrollbar flex items-end gap-1.5 overflow-x-auto">
               {chart.map((r) => (
-                <div key={r.week} className="flex min-w-[18px] flex-col items-center gap-1.5">
-                  <div className="flex h-24 items-end">
-                    <div className="w-3 rounded-t-sm" style={{ height: `${Math.max(2, (r.elevation / maxElev) * 100)}%`, background: '#FB923C' }} title={`W${r.week} ${r.elevation} m`} />
+                <button
+                  key={r.week}
+                  onClick={() => setSelElevWeek(selElevWeek === r.week ? null : r.week)}
+                  className="flex min-w-[18px] flex-1 flex-col items-center gap-1.5"
+                >
+                  <div className="flex h-24 items-end" style={{ opacity: selElevWeek && selElevWeek !== r.week ? 0.4 : 1 }}>
+                    <div className="w-3 rounded-t-sm" style={{ height: `${Math.max(2, (r.elevation / maxElev) * 100)}%`, background: '#FB923C' }} />
                   </div>
                   <span className="tabular text-[9px] text-dim">{r.week}</span>
-                </div>
+                </button>
               ))}
             </div>
             <p className="mt-2 text-[11px] text-dim">

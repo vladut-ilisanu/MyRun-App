@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, Play, RefreshCw, Database, Smartphone, UserRound, LogOut, Mail } from 'lucide-react';
+import { Copy, Check, Play, RefreshCw, Database, Smartphone, UserRound, LogOut, Mail, Trash2 } from 'lucide-react';
 import { useStore } from '../state/store';
 import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
@@ -46,7 +46,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
 
 export function SetupTab() {
-  const { profile, regenerate, simulateRun, refreshSupabaseStatus, user, signIn, signUp, signInMagic, signOut, supabaseConfigured } = useStore();
+  const { profile, regenerate, simulateRun, clearSimulated, hasSimulated, refreshSupabaseStatus, user, signIn, signUp, signInMagic, signOut, supabaseConfigured } = useStore();
 
   // Account form
   const [acctEmail, setAcctEmail] = useState('');
@@ -444,6 +444,18 @@ export function SetupTab() {
           >
             <Play size={16} /> Simulate Apple Health Run
           </button>
+          {hasSimulated && (
+            <button
+              onClick={() => {
+                clearSimulated();
+                setSimMsg('');
+              }}
+              className="press flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-amber"
+              style={{ border: '1px solid rgba(251,191,36,0.4)' }}
+            >
+              <Trash2 size={15} /> Clear test run
+            </button>
+          )}
           {simMsg && <div className="text-xs font-medium text-mint">{simMsg}</div>}
         </div>
       </section>
@@ -466,7 +478,7 @@ export function SetupTab() {
       </button>
 
       <p className="mt-5 text-center text-[11px] text-dim">
-        MyRun v4 · your data lives on this device; Supabase is an optional cloud backup.
+        MyRun v5 · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );
