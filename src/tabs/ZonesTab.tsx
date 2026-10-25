@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Info } from 'lucide-react';
 import { useStore } from '../state/store';
 import { RunCharts } from '../components/RunCharts';
 import { formatFinishTime, formatPaceRange, weekStartMonday } from '../lib/format';
@@ -19,6 +20,7 @@ export function ZonesTab() {
   const { paces, vdot, workouts, synced, profile } = useStore();
   const [selWeek, setSelWeek] = useState<number | null>(null);
   const [selElevWeek, setSelElevWeek] = useState<number | null>(null);
+  const [showVdotInfo, setShowVdotInfo] = useState(false);
 
   const weekMondays = useMemo(() => {
     const m = new Map<number, string>();
@@ -138,7 +140,17 @@ export function ZonesTab() {
       <div className="rise mt-5 grid grid-cols-2 gap-3">
         <div className="card relative overflow-hidden p-5">
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 100% at 0% 0%, rgba(123,140,255,0.18), rgba(10,10,18,0) 70%)' }} />
-          <div className="relative text-[11px] font-medium uppercase tracking-wider text-dim">VDOT</div>
+          <div className="relative flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-dim">
+            VDOT
+            <button
+              onClick={() => setShowVdotInfo((v) => !v)}
+              className="press grid h-4 w-4 place-items-center rounded-full"
+              style={{ border: '1px solid #3a3a46' }}
+              aria-label="What is VDOT?"
+            >
+              <Info size={10} className="text-dim" />
+            </button>
+          </div>
           <div className="relative mt-1 tabular text-5xl font-extrabold gradient-text">{vdot.toFixed(1)}</div>
           <div className="relative mt-1 text-[11px] text-dim">Daniels fitness score</div>
         </div>
@@ -148,6 +160,14 @@ export function ZonesTab() {
           <div className="mt-1 text-[11px] text-dim">predicted · current fitness</div>
         </div>
       </div>
+      {showVdotInfo && (
+        <div className="rise mt-3 rounded-2xl border border-border bg-mint/5 p-4 text-sm leading-relaxed text-white/75">
+          <b className="text-mint">VDOT</b> is Jack Daniels’ single number for your running fitness —
+          essentially your VO₂max estimated from a recent race. Higher is fitter. Every training
+          pace and the race-time predictions on this page are derived from it, so keeping your
+          recent race time up to date in Setup keeps all your zones accurate.
+        </div>
+      )}
 
       {/* Equivalent race times */}
       <div className="rise mt-3 grid grid-cols-3 gap-3" style={{ animationDelay: '60ms' }}>

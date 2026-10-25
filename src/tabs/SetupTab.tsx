@@ -352,6 +352,47 @@ export function SetupTab() {
         </div>
       </section>
 
+      {/* Simulate / Test the pipeline */}
+      <section className="mt-7">
+        <h2 className={sectionTitle}>Test the pipeline</h2>
+        <div className="card space-y-3 p-4">
+          <div className="flex gap-2">
+            <label className={`${label} flex-1`}>
+              Distance (km)
+              <input className={input} style={inputStyle} value={simDist} onChange={(e) => setSimDist(e.target.value)} inputMode="decimal" />
+            </label>
+            <label className={`${label} flex-1`}>
+              Duration (min)
+              <input className={input} style={inputStyle} value={simMin} onChange={(e) => setSimMin(e.target.value)} inputMode="numeric" />
+            </label>
+          </div>
+          <label className={label}>
+            Date
+            <input type="date" className={input} style={inputStyle} value={simDate} onChange={(e) => setSimDate(e.target.value)} />
+          </label>
+          <button
+            onClick={() => void onSimulate()}
+            className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-mint"
+            style={{ background: 'rgba(123,140,255,0.12)', border: '1px solid rgba(123,140,255,0.4)' }}
+          >
+            <Play size={16} /> Simulate Apple Health Run
+          </button>
+          {hasSimulated && (
+            <button
+              onClick={() => {
+                clearSimulated();
+                setSimMsg('');
+              }}
+              className="press flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-amber"
+              style={{ border: '1px solid rgba(251,191,36,0.4)' }}
+            >
+              <Trash2 size={15} /> Clear test run
+            </button>
+          )}
+          {simMsg && <div className="text-xs font-medium text-mint">{simMsg}</div>}
+        </div>
+      </section>
+
       {/* Supabase */}
       <section className="mt-7">
         <h2 className={sectionTitle}>
@@ -419,47 +460,6 @@ export function SetupTab() {
         </div>
       </section>
 
-      {/* Simulate */}
-      <section className="mt-7">
-        <h2 className={sectionTitle}>Test the pipeline</h2>
-        <div className="card space-y-3 p-4">
-          <div className="flex gap-2">
-            <label className={`${label} flex-1`}>
-              Distance (km)
-              <input className={input} style={inputStyle} value={simDist} onChange={(e) => setSimDist(e.target.value)} inputMode="decimal" />
-            </label>
-            <label className={`${label} flex-1`}>
-              Duration (min)
-              <input className={input} style={inputStyle} value={simMin} onChange={(e) => setSimMin(e.target.value)} inputMode="numeric" />
-            </label>
-          </div>
-          <label className={label}>
-            Date
-            <input type="date" className={input} style={inputStyle} value={simDate} onChange={(e) => setSimDate(e.target.value)} />
-          </label>
-          <button
-            onClick={() => void onSimulate()}
-            className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-mint"
-            style={{ background: 'rgba(123,140,255,0.12)', border: '1px solid rgba(123,140,255,0.4)' }}
-          >
-            <Play size={16} /> Simulate Apple Health Run
-          </button>
-          {hasSimulated && (
-            <button
-              onClick={() => {
-                clearSimulated();
-                setSimMsg('');
-              }}
-              className="press flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-amber"
-              style={{ border: '1px solid rgba(251,191,36,0.4)' }}
-            >
-              <Trash2 size={15} /> Clear test run
-            </button>
-          )}
-          {simMsg && <div className="text-xs font-medium text-mint">{simMsg}</div>}
-        </div>
-      </section>
-
       <button
         onClick={() => {
           if (
@@ -478,7 +478,7 @@ export function SetupTab() {
       </button>
 
       <p className="mt-5 text-center text-[11px] text-dim">
-        MyRun v5 · your data lives on this device; Supabase is an optional cloud backup.
+        MyRun v6 · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );
