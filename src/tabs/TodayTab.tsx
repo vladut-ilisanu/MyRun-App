@@ -80,8 +80,8 @@ export function TodayTab() {
   return (
     <div className="safe-top px-5 pb-nav">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium text-dim">
             {phaseLabel} phase · Week {displayWeek}
             {profile.raceType !== 'Road' ? ` · ${profile.raceType}` : ''}
@@ -93,32 +93,32 @@ export function TodayTab() {
             </span>
           </div>
         </div>
-        <div className="flex flex-shrink-0 flex-col items-center gap-1.5">
-          <ProgressRing value={plannedKm ? completedKm / plannedKm : 0} size={62} stroke={6}>
+        <div className="flex flex-shrink-0 items-center gap-2.5">
+          <ProgressRing value={plannedKm ? completedKm / plannedKm : 0} size={54} stroke={5}>
             <div className="text-center leading-none">
-              <div className="tabular text-sm font-extrabold">{completedKm.toFixed(0)}</div>
+              <div className="tabular text-[13px] font-extrabold">{completedKm.toFixed(0)}</div>
               <div className="text-[8px] text-dim">/{plannedKm.toFixed(0)}km</div>
             </div>
           </ProgressRing>
           <button
             onClick={() => void syncHealth()}
-            className="press flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold"
+            className="press grid h-11 w-11 place-items-center rounded-full bg-card"
             style={{ border: '1px solid #272734' }}
+            aria-label="Sync Health"
           >
-            <RefreshCw size={12} className={syncing ? 'spin text-mint' : 'text-mint'} />
-            {syncing ? 'Syncing' : 'Sync'}
+            <RefreshCw size={18} className={syncing ? 'spin text-mint' : 'text-mint'} />
           </button>
         </div>
       </div>
-      {lastSynced && (
-        <div className="mt-1 text-[11px] text-dim">
-          {runsDone}/{weekWorkouts.length} runs done · synced{' '}
-          {new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      )}
+      <div className="mt-1.5 text-[11px] text-dim">
+        {runsDone}/{weekWorkouts.length} sessions done this week
+        {lastSynced
+          ? ` · synced ${new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          : ''}
+      </div>
 
-      {/* Week scroller */}
-      <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
+      {/* Week scroller — all 7 days fit exactly */}
+      <div className="mt-5 grid grid-cols-7 gap-1.5">
         {weekDays.map((date, i) => {
           const ws = byDate.get(date) ?? [];
           const runs = synced.filter((r) => r.local_date === date);
@@ -130,13 +130,13 @@ export function TodayTab() {
             <button
               key={date}
               onClick={() => setSelDate(date)}
-              className="press flex min-w-[48px] flex-1 flex-col items-center gap-1.5 rounded-2xl py-2.5"
+              className="press flex flex-col items-center gap-1.5 rounded-2xl py-2.5"
               style={{
                 background: isSel ? 'rgba(123,140,255,0.16)' : ws.length ? '#16161F' : 'transparent',
                 border: isSel ? '1px solid #7B8CFF' : '1px solid #272734',
               }}
             >
-              <span className="text-[10px] font-bold uppercase text-dim">{dayName(i)}</span>
+              <span className="text-[9px] font-bold uppercase text-dim">{dayName(i)}</span>
               <span
                 className="tabular text-base font-extrabold leading-none"
                 style={{ color: isToday ? '#7B8CFF' : '#fff' }}
@@ -150,12 +150,13 @@ export function TodayTab() {
                 >
                   <Check size={9} strokeWidth={4} color="#0A0A12" />
                 </span>
-              ) : w0 ? (
-                <span className="h-2 w-2 rounded-full" style={{ background: typeAccent[w0.type] }} />
-              ) : runs.length ? (
-                <span className="h-2 w-2 rounded-full bg-cyan" />
               ) : (
-                <span className="h-2 w-2 rounded-full bg-transparent" />
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{
+                    background: w0 ? typeAccent[w0.type] : runs.length ? '#22D3EE' : 'transparent',
+                  }}
+                />
               )}
             </button>
           );
