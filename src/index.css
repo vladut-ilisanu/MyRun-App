@@ -45,19 +45,6 @@ body {
   padding-bottom: calc(6.75rem + env(safe-area-inset-bottom));
 }
 
-/* Solid strip behind the iOS status bar so scrolled content never shows
-   through / blurs under the translucent status bar at the top. */
-.statusbar-scrim {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-top);
-  background: #0a0a12;
-  z-index: 45;
-  pointer-events: none;
-}
-
 input,
 textarea,
 select {
@@ -73,7 +60,8 @@ select {
 
 /* ---- iOS safe areas (QA #3) ---- */
 .safe-top {
-  padding-top: max(env(safe-area-inset-top), 20px);
+  /* Always clear the status bar / notch, even if the inset is under-reported. */
+  padding-top: max(env(safe-area-inset-top), 44px);
 }
 
 .tabbar {

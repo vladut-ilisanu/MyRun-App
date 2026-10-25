@@ -68,7 +68,6 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-      <div className="statusbar-scrim" />
       {step > 0 && (
         <div className="safe-top flex gap-1.5 px-5">
           {Array.from({ length: TOTAL }).map((_, i) => (
