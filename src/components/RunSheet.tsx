@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { X, Heart, Flame, Clock, TrendingUp } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { X, Heart, Flame, Clock, TrendingUp, Pencil, Trash2, Check } from 'lucide-react';
 import type { PlannedWorkout, SyncedWorkout } from '../types';
 import { formatDuration, formatPace, metersToKm } from '../lib/format';
 import { evaluateCompliance, movingPaceSecPerKm } from '../lib/workoutMatcher';
@@ -7,16 +7,24 @@ import { ComplianceBadgePill } from './Badge';
 import { TypeChip } from './TypeChip';
 import { hexA } from './ui';
 
-/** Full-screen detail for a single logged run. */
+/** Full-screen detail for a single logged run, with edit / delete. */
 export function RunSheet({
   run,
   matched,
   onClose,
+  onUpdate,
+  onDelete,
 }: {
   run: SyncedWorkout;
   matched: PlannedWorkout | null;
   onClose: () => void;
+  onUpdate?: (distanceKm: number, durationSeconds: number, dateISO: string) => void;
+  onDelete?: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [km, setKm] = useState(metersToKm(run.distance_meters));
+  const [min, setMin] = useState(String(Math.round(run.duration_seconds / 60)));
+  const [date, setDate] = useState(run.local_date);
   const pace = movingPaceSecPerKm(run.duration_seconds, run.distance_meters);
   const comp = matched ? evaluateCompliance(run, matched) : null;
   const g1 = '#22D3EE';
@@ -91,6 +99,63 @@ export function RunSheet({
               Not linked to a scheduled session — logged as a bonus run. Its mileage still counts
               toward your week.
             </div>
+          )}
+
+          {/* Edit / delete */}
+          {(onUpdate || onDelete) && (
+            <>
+              <div className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim">
+                Edit this run
+              </div>
+              {editing ? (
+                <div className="card p-4">
+                  <div className="flex gap-2">
+                    <label className="flex-1 text-xs text-dim">
+                      Distance (km)
+                      <input value={km} onChange={(e) => setKm(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                    </label>
+                    <label className="flex-1 text-xs text-dim">
+                      Time (min)
+                      <input value={min} onChange={(e) => setMin(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                    </label>
+                  </div>
+                  <label className="mt-3 block text-xs text-dim">
+                    Date
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                  </label>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => {
+                        const k = Number(String(km).replace(',', '.'));
+                        const s = Math.round(Number(String(min).replace(',', '.')) * 60);
+                        if (k > 0 && s > 0 && onUpdate) onUpdate(k, s, date);
+                        setEditing(false);
+                      }}
+                      className="press flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-black"
+                      style={{ background: 'linear-gradient(135deg,#22D3EE,#3B82F6)' }}
+                    >
+                      <Check size={15} /> Save
+                    </button>
+                    <button onClick={() => setEditing(false)} className="press rounded-xl bg-bg px-4 py-2.5 text-sm font-semibold" style={{ border: '1px solid #272734' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {onUpdate && (
+                    <button onClick={() => setEditing(true)} className="press flex flex-1 items-center justify-center gap-2 rounded-xl bg-card py-2.5 text-sm font-semibold" style={{ border: '1px solid #272734' }}>
+                      <Pencil size={15} className="text-cyan" /> Edit
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button onClick={onDelete} className="press flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-amber" style={{ border: '1px solid rgba(251,191,36,0.4)' }}>
+                      <Trash2 size={15} /> Delete
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

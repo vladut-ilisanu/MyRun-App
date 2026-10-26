@@ -55,6 +55,10 @@ interface StoreValue {
   simulateRun: (distanceKm: number, durationSeconds: number, dateISO: string) => Promise<void>;
   clearSimulated: () => void;
   hasSimulated: boolean;
+  addManualRun: (distanceKm: number, durationSeconds: number, dateISO: string) => void;
+  logRunForWorkout: (workoutId: string, distanceKm: number, durationSeconds: number) => void;
+  updateRun: (externalId: string, distanceKm: number, durationSeconds: number, dateISO: string) => void;
+  deleteRun: (externalId: string) => void;
   markComplete: (workoutId: string, completed: boolean) => void;
   reschedule: (workoutId: string, dateISO: string) => void;
   relink: (externalId: string, workoutId: string | null) => void;
@@ -251,6 +255,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSynced(matched.synced);
   }, [synced, workouts]);
 
+  // Manually log a real run (persists; matches to the plan like a synced run).
+  const addManualRun = useCallback(
+    (distanceKm: number, durationSeconds: number, dateISO: string) => {
+      const run: SyncedWorkout = {
+        ...normalizeHealthPayload({
+          distance: distanceKm,
+          duration_seconds: durationSeconds,
+          local_date: dateISO,
+          start_time: `${dateISO}T08:00:00`,
+        }),
+        source: 'Manual',
+      };
+      ingest([run]); // persists + matches
+    },
+    [ingest]
+  );
+
+  // Log the actual result for a specific session (clears a prior manual tick so
+  // the run links to it, then matches by its date).
+  const logRunForWorkout = useCallback(
+    (workoutId: string, distanceKm: number, durationSeconds: number) => {
+      const w = workouts.find((x) => x.id === workoutId);
+      if (!w) return;
+      const run: SyncedWorkout = {
+        ...normalizeHealthPayload({
+          distance: distanceKm,
+          duration_seconds: durationSeconds,
+          local_date: w.date,
+          start_time: `${w.date}T08:00:00`,
+        }),
+        source: 'Manual',
+      };
+      const clearedWorkouts = workouts.map((x) =>
+        x.id === workoutId ? { ...x, completed: false, matched_synced_id: null } : x
+      );
+      const merged = dedupeByExternalId([...synced, run]);
+      const matched = applyMatching(clearedWorkouts, merged);
+      commit(matched.workouts, matched.synced);
+    },
+    [synced, workouts, commit]
+  );
+
+  // Edit a logged run's distance / duration / date, then re-match.
+  const updateRun = useCallback(
+    (externalId: string, distanceKm: number, durationSeconds: number, dateISO: string) => {
+      const nextSynced = synced.map((r) =>
+        r.external_id === externalId
+          ? {
+              ...r,
+              distance_meters: Math.round(distanceKm * 1000),
+              duration_seconds: Math.round(durationSeconds),
+              local_date: dateISO,
+            }
+          : r
+      );
+      const matched = applyMatching(workouts, nextSynced);
+      commit(matched.workouts, matched.synced);
+    },
+    [synced, workouts, commit]
+  );
+
+  const deleteRun = useCallback(
+    (externalId: string) => {
+      const nextSynced = synced.filter((r) => r.external_id !== externalId);
+      const matched = applyMatching(workouts, nextSynced);
+      commit(matched.workouts, matched.synced);
+    },
+    [synced, workouts, commit]
+  );
+
   const markComplete = useCallback(
     (workoutId: string, completed: boolean) => {
       const next = workouts.map((w) => (w.id === workoutId ? { ...w, completed } : w));
@@ -360,6 +434,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     simulateRun,
     clearSimulated,
     hasSimulated: synced.some((r) => r.source === SIM_SOURCE),
+    addManualRun,
+    logRunForWorkout,
+    updateRun,
+    deleteRun,
     markComplete,
     reschedule,
     relink,

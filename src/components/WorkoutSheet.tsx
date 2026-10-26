@@ -1,4 +1,5 @@
-import { X, Check, Link2, Unlink, Sparkles, CalendarClock } from 'lucide-react';
+import { useState } from 'react';
+import { X, Check, Link2, Unlink, Sparkles, CalendarClock, PlusCircle } from 'lucide-react';
 import type { PlannedWorkout, SyncedWorkout } from '../types';
 import { formatDuration, formatPaceRange, metersToKm, formatPace } from '../lib/format';
 import { segmentColor, typeGradient, typeLabel, hexA } from './ui';
@@ -11,6 +12,7 @@ interface Props {
   onToggleComplete: (completed: boolean) => void;
   onRelink: (externalId: string, workoutId: string | null) => void;
   onReschedule?: (dateISO: string) => void;
+  onLogRun?: (distanceKm: number, durationSeconds: number) => void;
 }
 
 export function WorkoutSheet({
@@ -20,9 +22,12 @@ export function WorkoutSheet({
   onToggleComplete,
   onRelink,
   onReschedule,
+  onLogRun,
 }: Props) {
   const linked = weekRuns.find((r) => r.external_id === workout.matched_synced_id);
   const [g1, g2] = typeGradient[workout.type];
+  const [logKm, setLogKm] = useState(metersToKm(workout.target_distance_meters));
+  const [logMin, setLogMin] = useState(String(Math.round(workout.estimated_duration_seconds / 60)));
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-center">
@@ -149,6 +154,54 @@ export function WorkoutSheet({
                   ))
               )}
             </div>
+          )}
+
+          {/* Log your actual run */}
+          {onLogRun && (
+            <>
+              <div className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim">
+                Log your run
+              </div>
+              <div className="card p-4">
+                <div className="flex gap-2">
+                  <label className="flex-1 text-xs text-dim">
+                    Distance (km)
+                    <input
+                      value={logKm}
+                      onChange={(e) => setLogKm(e.target.value)}
+                      inputMode="decimal"
+                      className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm"
+                      style={{ border: '1px solid #272734' }}
+                    />
+                  </label>
+                  <label className="flex-1 text-xs text-dim">
+                    Time (min)
+                    <input
+                      value={logMin}
+                      onChange={(e) => setLogMin(e.target.value)}
+                      inputMode="decimal"
+                      className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm"
+                      style={{ border: '1px solid #272734' }}
+                    />
+                  </label>
+                </div>
+                <button
+                  onClick={() => {
+                    const km = Number(String(logKm).replace(',', '.'));
+                    const sec = Math.round(Number(String(logMin).replace(',', '.')) * 60);
+                    if (km > 0 && sec > 0) onLogRun(km, sec);
+                  }}
+                  className="press mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-black"
+                  style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
+                >
+                  <PlusCircle size={16} /> Log this run
+                </button>
+                <p className="mt-2 text-[11px] text-dim">
+                  Enter what you actually ran — it links here, marks the session done, and updates
+                  your stats and pace compliance.
+                </p>
+              </div>
+            </>
           )}
 
           {/* Reschedule */}

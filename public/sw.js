@@ -1,7 +1,7 @@
 // MyRun service worker. Network-first so the installed PWA always picks up the
 // latest deploy when online, falling back to cache only when offline. Assets are
 // hash-named, so caching them is safe. Cross-origin (Supabase) calls pass through.
-const CACHE = 'myrun-v6';
+const CACHE = 'myrun-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

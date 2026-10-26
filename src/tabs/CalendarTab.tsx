@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useStore } from '../state/store';
 import { WorkoutSheet } from '../components/WorkoutSheet';
+import { RunSheet } from '../components/RunSheet';
 import { SegmentBar } from '../components/SegmentBar';
 import { TypeChip } from '../components/TypeChip';
 import { typeAccent } from '../components/ui';
@@ -23,7 +24,8 @@ const MONTHS = [
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export function CalendarTab() {
-  const { workouts, synced, markComplete, relink, reschedule } = useStore();
+  const { workouts, synced, markComplete, relink, reschedule, logRunForWorkout, updateRun, deleteRun } = useStore();
+  const [runId, setRunId] = useState<string | null>(null);
   const today = toISODate(new Date());
 
   // Default the calendar to the month of the first workout (or today).
@@ -206,14 +208,12 @@ export function CalendarTab() {
             </button>
           ))}
           {dayRuns.map((r) => (
-            <div key={r.external_id} className="card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-cyan">Logged run</span>
-                <span className="tabular text-sm text-dim">
-                  {metersToKm(r.distance_meters)} km · {formatPace(movingPaceSecPerKm(r.duration_seconds, r.distance_meters))}
-                </span>
-              </div>
-            </div>
+            <button key={r.external_id} onClick={() => setRunId(r.external_id)} className="press card flex w-full items-center justify-between p-4 text-left">
+              <span className="text-sm font-bold text-cyan">Logged run</span>
+              <span className="tabular text-sm text-dim">
+                {metersToKm(r.distance_meters)} km · {formatPace(movingPaceSecPerKm(r.duration_seconds, r.distance_meters))}
+              </span>
+            </button>
           ))}
         </div>
       )}
@@ -229,8 +229,26 @@ export function CalendarTab() {
             reschedule(sheetWorkout.id, dateISO);
             setSelected(dateISO);
           }}
+          onLogRun={(km, sec) => {
+            logRunForWorkout(sheetWorkout.id, km, sec);
+            setSheetId(null);
+          }}
         />
       )}
+      {(() => {
+        const r = synced.find((x) => x.external_id === runId);
+        if (!r) return null;
+        const m = r.matched_workout_id ? workouts.find((w) => w.id === r.matched_workout_id) ?? null : null;
+        return (
+          <RunSheet
+            run={r}
+            matched={m}
+            onClose={() => setRunId(null)}
+            onUpdate={(km, sec, d) => updateRun(r.external_id, km, sec, d)}
+            onDelete={() => { deleteRun(r.external_id); setRunId(null); }}
+          />
+        );
+      })()}
     </div>
   );
 }

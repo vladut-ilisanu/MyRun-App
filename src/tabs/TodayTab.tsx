@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, ArrowRight, Heart, Check, ChevronRight } from 'lucide-react';
+import { RefreshCw, ArrowRight, Heart, Check, ChevronRight, Plus } from 'lucide-react';
 import { useStore, useCurrentWeek } from '../state/store';
 import { SegmentBar } from '../components/SegmentBar';
 import { WorkoutSheet } from '../components/WorkoutSheet';
@@ -26,10 +26,14 @@ const phaseColor = (p: WeekPhase): string =>
   p === 'Peak' ? '#22D3EE' : p === 'Taper' ? '#7B8CFF' : p === 'Deload' ? '#FBBF24' : p.startsWith('Build') ? '#A855F7' : '#3B82F6';
 
 export function TodayTab() {
-  const { workouts, synced, profile, totalWeeks, syncing, syncHealth, markComplete, reschedule, relink } =
+  const { workouts, synced, profile, totalWeeks, syncing, syncHealth, markComplete, reschedule, relink, addManualRun, logRunForWorkout, updateRun, deleteRun } =
     useStore();
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addKm, setAddKm] = useState('');
+  const [addMin, setAddMin] = useState('');
+  const [addDate, setAddDate] = useState(toISODate(new Date()));
 
   const today = toISODate(new Date());
   const currentWeek = useCurrentWeek(workouts);
@@ -213,7 +217,46 @@ export function TodayTab() {
       )}
 
       {/* Recent runs (tap for detail) */}
-      <div className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Recent runs</div>
+      <div className="mb-2 mt-7 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-dim">Recent runs</span>
+        <button onClick={() => setShowAdd((v) => !v)} className="press flex items-center gap-1 text-xs font-semibold text-mint">
+          <Plus size={14} /> Log a run
+        </button>
+      </div>
+      {showAdd && (
+        <div className="card mb-3 p-4">
+          <div className="flex gap-2">
+            <label className="flex-1 text-xs text-dim">
+              Distance (km)
+              <input value={addKm} onChange={(e) => setAddKm(e.target.value)} inputMode="decimal" placeholder="10" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+            </label>
+            <label className="flex-1 text-xs text-dim">
+              Time (min)
+              <input value={addMin} onChange={(e) => setAddMin(e.target.value)} inputMode="decimal" placeholder="55" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+            </label>
+          </div>
+          <label className="mt-3 block text-xs text-dim">
+            Date
+            <input type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+          </label>
+          <button
+            onClick={() => {
+              const km = Number(String(addKm).replace(',', '.'));
+              const sec = Math.round(Number(String(addMin).replace(',', '.')) * 60);
+              if (km > 0 && sec > 0) {
+                addManualRun(km, sec, addDate);
+                setShowAdd(false);
+                setAddKm('');
+                setAddMin('');
+              }
+            }}
+            className="press mt-3 w-full rounded-xl py-2.5 text-sm font-bold text-black"
+            style={{ background: 'linear-gradient(135deg,#6366F1,#A855F7)' }}
+          >
+            Log run
+          </button>
+        </div>
+      )}
       {recentRuns.length === 0 ? (
         <div className="card p-5 text-sm text-white/40">
           No runs synced yet. Record in Strava, or try “Simulate run” in Setup.
@@ -262,9 +305,24 @@ export function TodayTab() {
           onToggleComplete={(c) => markComplete(sheetWorkout.id, c)}
           onRelink={relink}
           onReschedule={(dateISO) => reschedule(sheetWorkout.id, dateISO)}
+          onLogRun={(km, sec) => {
+            logRunForWorkout(sheetWorkout.id, km, sec);
+            setSheetId(null);
+          }}
         />
       )}
-      {sheetRun && <RunSheet run={sheetRun} matched={sheetRunMatched} onClose={() => setRunId(null)} />}
+      {sheetRun && (
+        <RunSheet
+          run={sheetRun}
+          matched={sheetRunMatched}
+          onClose={() => setRunId(null)}
+          onUpdate={(km, sec, d) => updateRun(sheetRun.external_id, km, sec, d)}
+          onDelete={() => {
+            deleteRun(sheetRun.external_id);
+            setRunId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

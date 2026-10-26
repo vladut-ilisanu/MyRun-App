@@ -478,7 +478,7 @@ export function SetupTab() {
       </button>
 
       <p className="mt-5 text-center text-[11px] text-dim">
-        MyRun v6 · your data lives on this device; Supabase is an optional cloud backup.
+        MyRun v7 · your data lives on this device; Supabase is an optional cloud backup.
       </p>
     </div>
   );
