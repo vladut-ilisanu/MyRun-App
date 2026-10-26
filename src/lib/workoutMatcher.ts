@@ -24,16 +24,30 @@ export function parseLooseNumber(value: unknown): number {
   return isNaN(n) ? NaN : n;
 }
 
-/** Parse a duration that may be seconds, "HH:MM:SS", or "MM:SS". */
+/**
+ * Parse a duration that may be seconds ("1980"), a clock ("33:00", "1:33:00"),
+ * or a unit string ("33 min", "1 hr 33 min", "33 minutes") — the various ways an
+ * iOS Shortcut can render Apple Health's workout Duration.
+ */
 export function parseDurationSeconds(value: unknown): number {
   if (typeof value === 'number') return value;
   if (value == null) return NaN;
-  const s = String(value).trim();
+  const s = String(value).trim().toLowerCase();
+
   if (s.includes(':')) {
     const parts = s.split(':').map((p) => parseFloat(p.replace(',', '.')));
     if (parts.some((p) => isNaN(p))) return NaN;
     return parts.reduce((acc, p) => acc * 60 + p, 0);
   }
+
+  // Unit form: hours / minutes / seconds in any combination.
+  const num = (m: RegExpExecArray | null) => (m ? parseFloat(m[1].replace(',', '.')) : 0);
+  const h = /([\d.,]+)\s*(?:h|hr|hrs|hour|hours)\b/.exec(s);
+  const min = /([\d.,]+)\s*(?:min|mins|minute|minutes)\b/.exec(s);
+  const sec = /([\d.,]+)\s*(?:sec|secs|second|seconds)\b/.exec(s);
+  if (h || min || sec) return num(h) * 3600 + num(min) * 60 + num(sec);
+
+  // Plain number = seconds.
   return parseLooseNumber(s);
 }
 
