@@ -22,8 +22,9 @@ export function RunSheet({
   onDelete?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [km, setKm] = useState(metersToKm(run.distance_meters));
-  const [min, setMin] = useState(String(Math.round(run.duration_seconds / 60)));
+  const [km, setKm] = useState(metersToKm(run.distance_meters, 2));
+  const [min, setMin] = useState(String(Math.floor(run.duration_seconds / 60)));
+  const [sec, setSec] = useState(String(run.duration_seconds % 60));
   const [date, setDate] = useState(run.local_date);
   const pace = movingPaceSecPerKm(run.duration_seconds, run.distance_meters);
   const comp = matched ? evaluateCompliance(run, matched) : null;
@@ -109,14 +110,18 @@ export function RunSheet({
               </div>
               {editing ? (
                 <div className="card p-4">
-                  <div className="flex gap-2">
-                    <label className="flex-1 text-xs text-dim">
+                  <div className="grid grid-cols-3 gap-2">
+                    <label className="text-xs text-dim">
                       Distance (km)
                       <input value={km} onChange={(e) => setKm(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
                     </label>
-                    <label className="flex-1 text-xs text-dim">
-                      Time (min)
-                      <input value={min} onChange={(e) => setMin(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                    <label className="text-xs text-dim">
+                      Minutes
+                      <input value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                    </label>
+                    <label className="text-xs text-dim">
+                      Seconds
+                      <input value={sec} onChange={(e) => setSec(e.target.value)} inputMode="numeric" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
                     </label>
                   </div>
                   <label className="mt-3 block text-xs text-dim">
@@ -127,7 +132,7 @@ export function RunSheet({
                     <button
                       onClick={() => {
                         const k = Number(String(km).replace(',', '.'));
-                        const s = Math.round(Number(String(min).replace(',', '.')) * 60);
+                        const s = Math.round((Number(min) || 0) * 60 + (Number(sec) || 0));
                         if (k > 0 && s > 0 && onUpdate) onUpdate(k, s, date);
                         setEditing(false);
                       }}

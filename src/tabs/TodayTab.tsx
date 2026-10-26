@@ -33,6 +33,7 @@ export function TodayTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [addKm, setAddKm] = useState('');
   const [addMin, setAddMin] = useState('');
+  const [addSec, setAddSec] = useState('');
   const [addDate, setAddDate] = useState(toISODate(new Date()));
 
   const today = toISODate(new Date());
@@ -225,14 +226,18 @@ export function TodayTab() {
       </div>
       {showAdd && (
         <div className="card mb-3 p-4">
-          <div className="flex gap-2">
-            <label className="flex-1 text-xs text-dim">
+          <div className="grid grid-cols-3 gap-2">
+            <label className="text-xs text-dim">
               Distance (km)
-              <input value={addKm} onChange={(e) => setAddKm(e.target.value)} inputMode="decimal" placeholder="10" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+              <input value={addKm} onChange={(e) => setAddKm(e.target.value)} inputMode="decimal" placeholder="6.12" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
             </label>
-            <label className="flex-1 text-xs text-dim">
-              Time (min)
-              <input value={addMin} onChange={(e) => setAddMin(e.target.value)} inputMode="decimal" placeholder="55" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+            <label className="text-xs text-dim">
+              Minutes
+              <input value={addMin} onChange={(e) => setAddMin(e.target.value)} inputMode="numeric" placeholder="34" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+            </label>
+            <label className="text-xs text-dim">
+              Seconds
+              <input value={addSec} onChange={(e) => setAddSec(e.target.value)} inputMode="numeric" placeholder="20" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
             </label>
           </div>
           <label className="mt-3 block text-xs text-dim">
@@ -242,12 +247,13 @@ export function TodayTab() {
           <button
             onClick={() => {
               const km = Number(String(addKm).replace(',', '.'));
-              const sec = Math.round(Number(String(addMin).replace(',', '.')) * 60);
+              const sec = Math.round((Number(addMin) || 0) * 60 + (Number(addSec) || 0));
               if (km > 0 && sec > 0) {
                 addManualRun(km, sec, addDate);
                 setShowAdd(false);
                 setAddKm('');
                 setAddMin('');
+                setAddSec('');
               }
             }}
             className="press mt-3 w-full rounded-xl py-2.5 text-sm font-bold text-black"

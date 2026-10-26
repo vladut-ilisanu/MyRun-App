@@ -26,8 +26,9 @@ export function WorkoutSheet({
 }: Props) {
   const linked = weekRuns.find((r) => r.external_id === workout.matched_synced_id);
   const [g1, g2] = typeGradient[workout.type];
-  const [logKm, setLogKm] = useState(metersToKm(workout.target_distance_meters));
-  const [logMin, setLogMin] = useState(String(Math.round(workout.estimated_duration_seconds / 60)));
+  const [logKm, setLogKm] = useState(metersToKm(workout.target_distance_meters, 2));
+  const [logMin, setLogMin] = useState(String(Math.floor(workout.estimated_duration_seconds / 60)));
+  const [logSec, setLogSec] = useState(String(workout.estimated_duration_seconds % 60));
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-center">
@@ -163,32 +164,24 @@ export function WorkoutSheet({
                 Log your run
               </div>
               <div className="card p-4">
-                <div className="flex gap-2">
-                  <label className="flex-1 text-xs text-dim">
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="text-xs text-dim">
                     Distance (km)
-                    <input
-                      value={logKm}
-                      onChange={(e) => setLogKm(e.target.value)}
-                      inputMode="decimal"
-                      className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm"
-                      style={{ border: '1px solid #272734' }}
-                    />
+                    <input value={logKm} onChange={(e) => setLogKm(e.target.value)} inputMode="decimal" placeholder="6.12" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
                   </label>
-                  <label className="flex-1 text-xs text-dim">
-                    Time (min)
-                    <input
-                      value={logMin}
-                      onChange={(e) => setLogMin(e.target.value)}
-                      inputMode="decimal"
-                      className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm"
-                      style={{ border: '1px solid #272734' }}
-                    />
+                  <label className="text-xs text-dim">
+                    Minutes
+                    <input value={logMin} onChange={(e) => setLogMin(e.target.value)} inputMode="numeric" placeholder="50" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
+                  </label>
+                  <label className="text-xs text-dim">
+                    Seconds
+                    <input value={logSec} onChange={(e) => setLogSec(e.target.value)} inputMode="numeric" placeholder="30" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
                   </label>
                 </div>
                 <button
                   onClick={() => {
                     const km = Number(String(logKm).replace(',', '.'));
-                    const sec = Math.round(Number(String(logMin).replace(',', '.')) * 60);
+                    const sec = Math.round((Number(logMin) || 0) * 60 + (Number(logSec) || 0));
                     if (km > 0 && sec > 0) onLogRun(km, sec);
                   }}
                   className="press mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-black"
