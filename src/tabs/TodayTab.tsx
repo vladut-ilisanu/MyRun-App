@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronRight, Plus } from 'lucide-react';
+import { ArrowRight, Heart, Check, ChevronRight, Plus } from 'lucide-react';
 import { useStore, useCurrentWeek } from '../state/store';
 import { SegmentBar } from '../components/SegmentBar';
 import { WorkoutSheet } from '../components/WorkoutSheet';
 import { RunSheet } from '../components/RunSheet';
 import { ComplianceBadgePill } from '../components/Badge';
+import { ProgressRing } from '../components/ProgressRing';
 import { TypeChip } from '../components/TypeChip';
-import { heroBackground, typeAccent } from '../components/ui';
+import { heroBackground, typeAccent, hexA } from '../components/ui';
 import {
   formatDuration,
   formatPace,
@@ -19,18 +20,10 @@ import {
   parseISODate,
 } from '../lib/format';
 import { evaluateCompliance, movingPaceSecPerKm } from '../lib/workoutMatcher';
-import type { ComplianceBadge, PlannedWorkout, SyncedWorkout, WorkoutSegment } from '../types';
+import type { ComplianceBadge, PlannedWorkout, WeekPhase } from '../types';
 
-/** Reps-or-time stat shown as the third metric on the focus card. */
-function thirdStat(w: PlannedWorkout): { value: string; label: string } {
-  const rep = w.segments.find((s: WorkoutSegment) => (s.reps ?? 0) > 1);
-  if (rep?.reps) {
-    const d = rep.rep_distance_meters ?? 0;
-    const dist = d >= 1000 ? `${d / 1000}k` : `${d}m`;
-    return { value: String(rep.reps), label: `× ${dist}` };
-  }
-  return { value: formatDuration(w.estimated_duration_seconds), label: 'time' };
-}
+const phaseColor = (p: WeekPhase): string =>
+  p === 'Peak' ? '#22D3EE' : p === 'Taper' ? '#7B8CFF' : p === 'Deload' ? '#FBBF24' : p.startsWith('Build') ? '#A855F7' : '#3B82F6';
 
 export function TodayTab() {
   const { workouts, synced, profile, totalWeeks, markComplete, reschedule, relink, addManualRun, logRunForWorkout, updateRun, deleteRun } =
@@ -67,14 +60,13 @@ export function TodayTab() {
   const plannedKm = weekWorkouts.reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
   const completedKm =
     weekWorkouts.filter((w) => w.completed).reduce((s, w) => s + w.target_distance_meters, 0) / 1000;
-  const sessions = weekWorkouts.filter((w) => w.type !== 'REST');
-  const runsDone = sessions.filter((w) => w.completed).length;
+  const runsDone = weekWorkouts.filter((w) => w.completed).length;
   const phaseLabel = weekWorkouts[0]?.phase ?? 'Base';
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekMon, i));
-  const weekPct = plannedKm ? Math.min(100, Math.round((completedKm / plannedKm) * 100)) : 0;
 
   const heroWorkout = (byDate.get(selDate) ?? [])[0] ?? null;
-  const recentRuns = [...synced].sort((a, b) => b.local_date.localeCompare(a.local_date)).slice(0, 4);
+  const selRuns = synced.filter((r) => r.local_date === selDate);
+  const recentRuns = [...synced].sort((a, b) => b.local_date.localeCompare(a.local_date)).slice(0, 3);
 
   const sheetWorkout = workouts.find((w) => w.id === sheetId) ?? null;
   const sheetWeekRuns = sheetWorkout
@@ -85,7 +77,7 @@ export function TodayTab() {
     ? workouts.find((w) => w.id === sheetRun.matched_workout_id) ?? null
     : null;
 
-  function badgeFor(run: SyncedWorkout): ComplianceBadge {
+  function badgeFor(run: (typeof synced)[number]): ComplianceBadge {
     if (!run.matched_workout_id) return 'unplanned';
     const w = workouts.find((x) => x.id === run.matched_workout_id);
     return w ? evaluateCompliance(run, w).badge : 'unplanned';
@@ -93,30 +85,17 @@ export function TodayTab() {
 
   const isSelToday = selDate === today;
   const accent = heroWorkout ? typeAccent[heroWorkout.type] : '#7B8CFF';
-  const heroRun = heroWorkout?.matched_synced_id
-    ? synced.find((r) => r.external_id === heroWorkout.matched_synced_id) ?? null
-    : null;
-  const dayTitle = isSelToday
-    ? 'Today'
-    : parseISODate(selDate).toLocaleDateString(undefined, { weekday: 'long' });
+  const pc = phaseColor(phaseLabel);
 
   return (
     <div className="safe-top px-5 pb-nav">
-      {/* Header — week context + day */}
-      <div className="rise">
-        <div className="overline">
-          Week {displayWeek} of {totalWeeks} · {phaseLabel}
-        </div>
-        <div className="mt-1 flex items-end justify-between">
-          <h1 className="text-[2rem] font-extrabold leading-none tracking-tight">{dayTitle}</h1>
-          <span className="pb-0.5 text-sm font-medium text-dim">
-            {parseISODate(selDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}
-          </span>
-        </div>
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-bold uppercase tracking-wider text-dim">This week</div>
       </div>
 
-      {/* Week strip */}
-      <div className="rise mt-5 grid grid-cols-7 gap-1.5" style={{ animationDelay: '40ms' }}>
+      {/* Week calendar */}
+      <div className="mt-3 grid grid-cols-7 gap-1.5">
         {weekDays.map((date, i) => {
           const ws = byDate.get(date) ?? [];
           const runs = synced.filter((r) => r.local_date === date);
@@ -128,17 +107,14 @@ export function TodayTab() {
             <button
               key={date}
               onClick={() => setSelDate(date)}
-              className="press flex flex-col items-center gap-1.5 rounded-2xl py-2.5 transition-colors"
+              className="press flex flex-col items-center gap-1.5 rounded-2xl py-2.5"
               style={{
-                background: isSel ? 'rgba(123,140,255,0.14)' : 'transparent',
-                border: isSel ? '1px solid rgba(123,140,255,0.55)' : '1px solid transparent',
+                background: isSel ? 'rgba(123,140,255,0.16)' : ws.length ? '#16161F' : 'transparent',
+                border: isSel ? '1px solid #7B8CFF' : '1px solid #272734',
               }}
             >
-              <span className="text-[9px] font-bold uppercase tracking-wide text-dim">{dayName(i)}</span>
-              <span
-                className="tabular text-base font-bold leading-none"
-                style={{ color: isToday ? '#7B8CFF' : isSel ? '#fff' : '#C9C9D2' }}
-              >
+              <span className="text-[9px] font-bold uppercase text-dim">{dayName(i)}</span>
+              <span className="tabular text-base font-extrabold leading-none" style={{ color: isToday ? '#7B8CFF' : '#fff' }}>
                 {Number(date.slice(8, 10))}
               </span>
               {done ? (
@@ -146,125 +122,119 @@ export function TodayTab() {
                   <Check size={9} strokeWidth={4} color="#0A0A12" />
                 </span>
               ) : (
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: w0 ? typeAccent[w0.type] : runs.length ? '#5BC2D8' : 'rgba(255,255,255,0.12)' }}
-                />
+                <span className="h-2 w-2 rounded-full" style={{ background: w0 ? typeAccent[w0.type] : runs.length ? '#22D3EE' : 'transparent' }} />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Week progress — one slim, honest bar */}
-      <div className="rise mt-5" style={{ animationDelay: '80ms' }}>
-        <div className="flex items-baseline justify-between text-xs">
-          <span className="overline">This week</span>
-          <span className="tabular text-dim">
-            {runsDone}/{sessions.length} sessions · {completedKm.toFixed(0)}/{plannedKm.toFixed(0)} km
-          </span>
+      {/* Current stage widget */}
+      <div className="rise card mt-4 flex items-center justify-between gap-4 p-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ color: pc, background: hexA(pc, 0.15) }}>
+              {phaseLabel} Phase
+            </span>
+            {profile.raceType !== 'Road' && (
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ color: '#FB923C', background: 'rgba(251,146,60,0.15)' }}>
+                {profile.raceType}
+              </span>
+            )}
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold tracking-tight">Week {displayWeek}</span>
+            <span className="text-sm font-semibold text-dim">of {totalWeeks}</span>
+          </div>
+          <div className="mt-0.5 text-xs text-dim">
+            {weeksToGoal} {weeksToGoal === 1 ? 'week' : 'weeks'} to race · {runsDone}/{weekWorkouts.length} done
+          </div>
         </div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${weekPct}%`, background: '#7B8CFF' }} />
-        </div>
-        <div className="mt-1.5 text-[11px] text-dim">
-          {weeksToGoal} {weeksToGoal === 1 ? 'week' : 'weeks'} to {profile.goalRaceName}
-        </div>
+        <ProgressRing value={plannedKm ? completedKm / plannedKm : 0} size={70} stroke={7}>
+          <div className="text-center leading-none">
+            <div className="tabular text-base font-extrabold">{completedKm.toFixed(0)}</div>
+            <div className="text-[9px] text-dim">/{plannedKm.toFixed(0)} km</div>
+          </div>
+        </ProgressRing>
       </div>
 
-      {/* Focus card — the one thing that matters for the selected day */}
-      <div className="rise mt-6" style={{ animationDelay: '120ms' }}>
-        {heroWorkout ? (
-          heroWorkout.type === 'REST' ? (
-            <div className="card p-6 text-center">
-              <div className="text-sm font-semibold text-white/80">Rest day</div>
-              <div className="mt-1 text-sm text-dim">Recover, stretch and refuel. Adaptation happens on rest.</div>
+      {/* Session hero */}
+      <div className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim">
+        {isSelToday ? "Today's session" : 'Session'} ·{' '}
+        {parseISODate(selDate).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}
+      </div>
+
+      {heroWorkout ? (
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-6 -z-10"
+            style={{ background: `radial-gradient(55% 45% at 50% 25%, ${hexA(accent, 0.28)}, transparent 70%)`, filter: 'blur(28px)' }}
+          />
+          <button onClick={() => setSheetId(heroWorkout.id)} className="press card block w-full overflow-hidden p-5 text-left" style={heroBackground(heroWorkout.type)}>
+            <div className="flex items-center justify-between">
+              <TypeChip type={heroWorkout.type} solid />
+              {heroWorkout.completed && (
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ color: accent, background: hexA(accent, 0.15) }}>
+                  <Check size={12} strokeWidth={3} /> Done
+                </span>
+              )}
             </div>
-          ) : (
-            <>
-              <button
-                onClick={() => setSheetId(heroWorkout.id)}
-                className="press block w-full overflow-hidden rounded-[1.25rem] p-5 text-left"
-                style={{ ...heroBackground(heroWorkout.type), border: '1px solid rgba(255,255,255,0.07)' }}
-              >
-                <div className="flex items-center justify-between">
-                  <TypeChip type={heroWorkout.type} solid />
-                  {heroWorkout.completed && (
-                    <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ color: accent, background: 'rgba(255,255,255,0.08)' }}>
-                      <Check size={12} strokeWidth={3} /> Done
-                    </span>
-                  )}
-                </div>
+            <h2 className="mt-3 text-2xl font-extrabold leading-tight">{heroWorkout.title}</h2>
+            <div className="mt-4 flex items-end gap-1">
+              <span className="tabular text-7xl font-extrabold tracking-tighter">{metersToKm(heroWorkout.target_distance_meters)}</span>
+              <span className="pb-2 text-xl font-bold text-dim">km</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/60">
+              <span className="tabular">~{formatDuration(heroWorkout.estimated_duration_seconds)}</span>
+              <span className="tabular">avg {formatPace(heroWorkout.target_avg_pace_sec)}</span>
+              {heroWorkout.elevation_gain_m > 0 && <span className="tabular">↑{heroWorkout.elevation_gain_m} m</span>}
+            </div>
+            <div className="mt-4">
+              <SegmentBar segments={heroWorkout.segments} height={12} />
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-sm font-semibold" style={{ color: accent }}>
+              View workout details <ArrowRight size={15} />
+            </div>
+          </button>
+        </div>
+      ) : (
+        <div className="card p-6 text-center text-white/50">
+          Rest day — recover, stretch and refuel. 💤
+          {selRuns.length > 0 && (
+            <button onClick={() => setRunId(selRuns[0].external_id)} className="press mt-2 block w-full text-sm text-cyan">
+              You logged {metersToKm(selRuns[0].distance_meters)} km — view it →
+            </button>
+          )}
+        </div>
+      )}
 
-                <h2 className="mt-4 text-2xl font-extrabold leading-tight">{heroWorkout.title}</h2>
-
-                {/* Big metrics */}
-                {heroWorkout.completed && heroRun ? (
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <Stat value={metersToKm(heroRun.distance_meters)} unit="km" label="logged" />
-                    <Stat value={formatPace(movingPaceSecPerKm(heroRun.duration_seconds, heroRun.distance_meters)).replace('/km', '')} unit="/km" label="avg pace" />
-                    <Stat value={formatDuration(heroRun.duration_seconds)} label="time" />
-                  </div>
-                ) : (
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <Stat value={metersToKm(heroWorkout.target_distance_meters)} unit="km" label="distance" />
-                    <Stat value={formatPace(heroWorkout.target_avg_pace_sec).replace('/km', '')} unit="/km" label="target pace" />
-                    <Stat value={thirdStat(heroWorkout).value} label={thirdStat(heroWorkout).label} />
-                  </div>
-                )}
-
-                <div className="mt-4">
-                  <SegmentBar segments={heroWorkout.segments} height={10} />
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-sm text-dim">
-                  <span className="tabular">~{formatDuration(heroWorkout.estimated_duration_seconds)}</span>
-                  <span className="flex items-center gap-1 font-semibold" style={{ color: accent }}>
-                    Details <ArrowRight size={15} />
-                  </span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setSheetId(heroWorkout.id)}
-                className="btn-primary press mt-3 flex w-full items-center justify-center gap-2 py-3.5 text-sm"
-              >
-                {heroWorkout.completed ? 'Edit logged run' : 'Log this run'}
-              </button>
-            </>
-          )
-        ) : (
-          <div className="card p-6 text-center text-sm text-dim">No session scheduled for this day.</div>
-        )}
-      </div>
-
-      {/* Recent runs */}
-      <div className="mb-3 mt-8 flex items-center justify-between">
-        <span className="overline">Recent runs</span>
-        <button onClick={() => setShowAdd((v) => !v)} className="press flex items-center gap-1 text-xs font-semibold" style={{ color: '#7B8CFF' }}>
+      {/* Recent runs (tap for detail) */}
+      <div className="mb-2 mt-7 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-dim">Recent runs</span>
+        <button onClick={() => setShowAdd((v) => !v)} className="press flex items-center gap-1 text-xs font-semibold text-mint">
           <Plus size={14} /> Log a run
         </button>
       </div>
-
       {showAdd && (
         <div className="card mb-3 p-4">
           <div className="grid grid-cols-3 gap-2">
-            <label className="overline font-medium normal-case tracking-normal text-dim">
+            <label className="text-xs text-dim">
               Distance (km)
-              <input value={addKm} onChange={(e) => setAddKm(e.target.value)} inputMode="decimal" placeholder="6.24" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm text-white" style={{ border: '1px solid #272734' }} />
+              <input value={addKm} onChange={(e) => setAddKm(e.target.value)} inputMode="decimal" placeholder="6.12" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
             </label>
-            <label className="overline font-medium normal-case tracking-normal text-dim">
+            <label className="text-xs text-dim">
               Minutes
-              <input value={addMin} onChange={(e) => setAddMin(e.target.value)} inputMode="numeric" placeholder="34" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm text-white" style={{ border: '1px solid #272734' }} />
+              <input value={addMin} onChange={(e) => setAddMin(e.target.value)} inputMode="numeric" placeholder="34" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
             </label>
-            <label className="overline font-medium normal-case tracking-normal text-dim">
+            <label className="text-xs text-dim">
               Seconds
-              <input value={addSec} onChange={(e) => setAddSec(e.target.value)} inputMode="numeric" placeholder="20" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm text-white" style={{ border: '1px solid #272734' }} />
+              <input value={addSec} onChange={(e) => setAddSec(e.target.value)} inputMode="numeric" placeholder="20" className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
             </label>
           </div>
-          <label className="overline mt-3 block font-medium normal-case tracking-normal text-dim">
+          <label className="mt-3 block text-xs text-dim">
             Date
-            <input type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm text-white" style={{ border: '1px solid #272734' }} />
+            <input type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} className="mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm" style={{ border: '1px solid #272734' }} />
           </label>
           <button
             onClick={() => {
@@ -278,16 +248,16 @@ export function TodayTab() {
                 setAddSec('');
               }
             }}
-            className="btn-primary press mt-3 w-full py-3 text-sm"
+            className="press mt-3 w-full rounded-xl py-2.5 text-sm font-bold text-black"
+            style={{ background: 'linear-gradient(135deg,#6366F1,#A855F7)' }}
           >
             Log run
           </button>
         </div>
       )}
-
       {recentRuns.length === 0 ? (
-        <div className="card p-6 text-center text-sm text-dim">
-          No runs logged yet. Tap <span className="font-semibold text-white/80">Log a run</span> after your next run.
+        <div className="card p-5 text-sm text-white/40">
+          No runs logged yet. Tap “Log a run” above to add one.
         </div>
       ) : (
         <div className="space-y-2">
@@ -295,25 +265,30 @@ export function TodayTab() {
             <button
               key={r.external_id}
               onClick={() => setRunId(r.external_id)}
-              className="press card flex w-full items-center justify-between p-4 text-left"
+              className="press rise card flex w-full items-center justify-between p-4 text-left"
               style={{ animationDelay: `${i * 40}ms` }}
             >
               <div>
-                <div className="flex items-baseline gap-1.5">
+                <div className="flex items-baseline gap-1">
                   <span className="tabular text-lg font-extrabold">{metersToKm(r.distance_meters)}</span>
                   <span className="text-xs font-semibold text-dim">km</span>
-                  <span className="tabular ml-1.5 text-sm text-white/55">
+                  <span className="tabular ml-2 text-sm text-white/55">
                     {formatPace(movingPaceSecPerKm(r.duration_seconds, r.distance_meters))}
                   </span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-2 text-[11px] text-dim">
                   <span className="tabular">{r.local_date}</span>
+                  {r.avg_heart_rate ? (
+                    <span className="flex items-center gap-0.5">
+                      <Heart size={10} className="text-pink" /> {Math.round(r.avg_heart_rate)}
+                    </span>
+                  ) : null}
                   <span className="tabular">{formatDuration(r.duration_seconds)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <ComplianceBadgePill badge={badgeFor(r)} />
-                <ChevronRight size={16} className="text-white/25" />
+                <ChevronRight size={16} className="text-white/30" />
               </div>
             </button>
           ))}
@@ -346,19 +321,6 @@ export function TodayTab() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-/** A big metric cell for the focus card: value (+unit) over a small label. */
-function Stat({ value, unit, label }: { value: string; unit?: string; label: string }) {
-  return (
-    <div className="rounded-2xl px-3 py-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <div className="flex items-baseline gap-0.5">
-        <span className="display text-2xl">{value}</span>
-        {unit && <span className="text-xs font-semibold text-dim">{unit}</span>}
-      </div>
-      <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-dim">{label}</div>
     </div>
   );
 }

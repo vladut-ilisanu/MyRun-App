@@ -161,7 +161,7 @@ export function SetupTab() {
                   onClick={() => void doAuth(() => signIn(acctEmail, acctPass))}
                   disabled={acctBusy}
                   className="press flex-1 rounded-xl py-2.5 text-sm font-bold text-black disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
                 >
                   Sign in
                 </button>
@@ -344,7 +344,7 @@ export function SetupTab() {
           <button
             onClick={onRegenerate}
             className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             <RefreshCw size={16} strokeWidth={2.6} /> Regenerate Plan
           </button>

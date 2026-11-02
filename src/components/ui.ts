@@ -1,30 +1,27 @@
 import type { CSSProperties } from 'react';
 import type { ComplianceBadge, SegmentType, WorkoutType } from '../types';
 
-/** Solid accent per workout type — a calm, lower-saturation set so no single
- *  element shouts. Indigo (#7B8CFF) is the app's one true accent; the others are
- *  muted data hues used only as small dots/bars for scannability. */
+/** Solid accent per workout type (for chips, rings, borders). */
 export const typeAccent: Record<WorkoutType, string> = {
   EASY: '#7B8CFF',
-  'LONG RUN': '#5BC2D8',
-  TEMPO: '#D9A441',
-  INTERVALS: '#9B7BE0',
-  HILLS: '#D98A4E',
+  'LONG RUN': '#22D3EE',
+  TEMPO: '#FBBF24',
+  INTERVALS: '#A855F7',
+  HILLS: '#FB923C',
   MP: '#7B8CFF',
-  RACE: '#E0C05A',
-  REST: '#6A6A78',
+  RACE: '#FFD166',
+  REST: '#8A8A98',
 };
 
-/** Near-monochrome two-stop gradient per type (for sheet headers / rings).
- *  Stops stay close in hue so headers read calm, not rainbow. */
+/** Two-stop gradient per workout type (for hero/header backgrounds). */
 export const typeGradient: Record<WorkoutType, [string, string]> = {
-  EASY: ['#7B8CFF', '#5B67CC'],
-  'LONG RUN': ['#5BC2D8', '#3E8FA0'],
-  TEMPO: ['#D9A441', '#B07E2E'],
-  INTERVALS: ['#9B7BE0', '#6E55A8'],
-  HILLS: ['#D98A4E', '#A86438'],
-  MP: ['#7B8CFF', '#5BC2D8'],
-  RACE: ['#E0C05A', '#C8923E'],
+  EASY: ['#7B8CFF', '#3B82F6'],
+  'LONG RUN': ['#22D3EE', '#3B82F6'],
+  TEMPO: ['#FBBF24', '#FB923C'],
+  INTERVALS: ['#A855F7', '#FF4D8D'],
+  HILLS: ['#FB923C', '#F97316'],
+  MP: ['#7B8CFF', '#22D3EE'],
+  RACE: ['#FFD166', '#FF7A45'],
   REST: ['#3A3A44', '#26262E'],
 };
 
@@ -43,12 +40,12 @@ export const typeLabel: Record<WorkoutType, string> = {
 export const segmentColor: Record<SegmentType, string> = {
   warmup: '#4B4B57',
   cooldown: '#4B4B57',
-  easy: '#7B8CFF',
+  easy: '#3B82F6',
   recovery: '#5B5B67',
-  tempo: '#D9A441',
-  interval: '#9B7BE0',
-  hill: '#D98A4E',
-  mp_block: '#5BC2D8',
+  tempo: '#FBBF24',
+  interval: '#A855F7',
+  hill: '#FB923C',
+  mp_block: '#7B8CFF',
 };
 
 export const badgeMeta: Record<
@@ -56,16 +53,19 @@ export const badgeMeta: Record<
   { label: string; color: string; bg: string }
 > = {
   on_target: { label: 'On Target', color: '#7B8CFF', bg: 'rgba(123,140,255,0.14)' },
-  crushed_it: { label: 'Crushed It', color: '#5BC2D8', bg: 'rgba(91,194,216,0.14)' },
-  completed_modified: { label: 'Modified', color: '#D9A441', bg: 'rgba(217,164,65,0.14)' },
+  crushed_it: { label: 'Crushed It', color: '#22D3EE', bg: 'rgba(34,211,238,0.14)' },
+  completed_modified: { label: 'Modified', color: '#FBBF24', bg: 'rgba(251,191,36,0.14)' },
   unplanned: { label: 'Bonus Run', color: '#A1A1AA', bg: 'rgba(161,161,170,0.12)' },
 };
 
-/** Soft single-hue glow over a flat base — a calm hero backdrop (no rainbow). */
+/** Inline style for a soft type-tinted hero background. */
 export function heroBackground(type: WorkoutType): CSSProperties {
-  const a = typeAccent[type];
+  const [a, b] = typeGradient[type];
   return {
-    background: `radial-gradient(130% 110% at 100% 0%, ${hexA(a, 0.16)} 0%, rgba(20,20,28,0) 58%), #14141c`,
+    background: `radial-gradient(120% 120% at 0% 0%, ${hexA(a, 0.22)} 0%, ${hexA(
+      b,
+      0.08
+    )} 42%, rgba(21,21,27,0) 72%), linear-gradient(180deg, #17171e 0%, #131319 100%)`,
   };
 }
 

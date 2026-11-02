@@ -31,8 +31,8 @@ export function RunSheet({
   const hasRecoveries = !!matched?.segments.some(
     (s) => (s.reps ?? 0) > 1 && (s.rest_seconds ?? 0) > 0
   );
-  const g1 = '#7B8CFF';
-  const g2 = '#5B67CC';
+  const g1 = '#22D3EE';
+  const g2 = '#3B82F6';
   const isSim = run.source && run.source.includes('Simulated');
 
   return (
@@ -147,7 +147,7 @@ export function RunSheet({
                         setEditing(false);
                       }}
                       className="press flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-black"
-                      style={{ background: 'linear-gradient(135deg,#7B8CFF,#5B67CC)' }}
+                      style={{ background: 'linear-gradient(135deg,#22D3EE,#3B82F6)' }}
                     >
                       <Check size={15} /> Save
                     </button>

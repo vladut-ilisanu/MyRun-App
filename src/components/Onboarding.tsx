@@ -85,7 +85,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
             <div
               className="grid h-20 w-20 place-items-center rounded-3xl"
-              style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
             >
               <Activity size={40} color="#061012" strokeWidth={2.5} />
             </div>
@@ -325,7 +325,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             onClick={() => canNext() && setStep((s) => s + 1)}
             disabled={!canNext()}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             {step === 0 ? 'Get started' : 'Continue'} <ArrowRight size={18} strokeWidth={2.6} />
           </button>
@@ -333,7 +333,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           <button
             onClick={finish}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
           >
             <Check size={18} strokeWidth={2.6} /> Build my plan
           </button>
