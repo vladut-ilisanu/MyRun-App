@@ -119,21 +119,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const didInit = useRef(false);
 
-  // On load, rebuild the plan for a returning user when it's missing (e.g. iOS
-  // cache eviction) OR stale vs the current settings — specifically, when hill
-  // training is off but the stored plan still carries hill reps / vertical gain
-  // (a plan generated before the flat-training change). Logged runs are preserved
-  // by applyMatching, so this never deletes history. New users onboard first.
+  // Rebuild the plan ONLY for a returning user whose stored workouts were lost
+  // (e.g. cache eviction). Never auto-regenerate an existing plan — that would
+  // shift its start forward and un-link already-completed runs. The plan only
+  // changes when the user taps "Regenerate Plan". New users onboard first.
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    if (!onboarded) return;
-
-    const staleHills =
-      !profile.trainWithHills &&
-      workouts.some((w) => w.type === 'HILLS' || (w.type !== 'RACE' && w.elevation_gain_m > 0));
-
-    if (workouts.length === 0 || staleHills) {
+    if (onboarded && workouts.length === 0) {
       const plan = generatePlan(profile);
       const matched = applyMatching(plan.workouts, synced);
       setWorkouts(matched.workouts);
