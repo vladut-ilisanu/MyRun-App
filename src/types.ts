@@ -80,6 +80,7 @@ export interface Profile {
   currentWeeklyMileageKm: number;
   currentEasyPaceSec: number; // the pace (sec/km) your easy runs currently feel like
   longRunDay: 'Saturday' | 'Sunday';
+  planStartDate?: string | null; // optional YYYY-MM-DD; pins the plan's first Monday (else next Monday)
 }
 
 export interface SyncedWorkout {

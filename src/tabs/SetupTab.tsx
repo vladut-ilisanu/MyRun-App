@@ -202,6 +202,14 @@ export function SetupTab() {
             <input type="date" className={input} style={inputStyle} value={form.goalRaceDate} onChange={(e) => update('goalRaceDate', e.target.value)} />
           </label>
 
+          <label className={label}>
+            Plan start date (optional)
+            <input type="date" className={input} style={inputStyle} value={form.planStartDate ?? ''} onChange={(e) => update('planStartDate', e.target.value || null)} />
+            <span className="mt-1 block text-[11px] leading-snug text-dim">
+              Blank = start next Monday. Set an earlier Monday to include weeks you’ve already trained.
+            </span>
+          </label>
+
           <div className={label}>
             Terrain
             <div className="mt-2 flex gap-2">

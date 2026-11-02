@@ -70,10 +70,18 @@ function classifyWeeks(totalWeeks: number): WeekClass[] {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** Compute the number of training weeks between today and the race week. */
-export function weeksUntilRace(goalRaceDate: string, today = toISODate(new Date())): number {
+/**
+ * Number of training weeks to the race week. By default the plan starts the
+ * upcoming Monday (never in the past); `startOverride` (YYYY-MM-DD) pins the
+ * first Monday instead — used to re-include weeks already trained.
+ */
+export function weeksUntilRace(
+  goalRaceDate: string,
+  today = toISODate(new Date()),
+  startOverride?: string | null
+): number {
   const raceMon = weekStartMonday(goalRaceDate);
-  const startMon = nextMonday(today); // plan starts the upcoming Monday, never in the past
+  const startMon = startOverride ? weekStartMonday(startOverride) : nextMonday(today);
   const weeks = Math.round(daysBetween(startMon, raceMon) / 7) + 1; // inclusive of race week
   return clamp(weeks, 8, 24);
 }
@@ -126,7 +134,7 @@ export function generatePlan(profile: Profile): GeneratedPlan {
       : paces.marathonPaceSec;
   const mpBand = { min: Math.round(goalMpSec - 5), max: Math.round(goalMpSec + 5) };
 
-  const totalWeeks = weeksUntilRace(profile.goalRaceDate);
+  const totalWeeks = weeksUntilRace(profile.goalRaceDate, undefined, profile.planStartDate);
   const weeks = classifyWeeks(totalWeeks);
   const peakWeek = weeks.find((w) => w.isPeak)!.week;
 
