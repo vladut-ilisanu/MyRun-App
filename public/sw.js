@@ -1,7 +1,7 @@
 // MyRun service worker. Network-first so the installed PWA always picks up the
 // latest deploy when online, falling back to cache only when offline. Assets are
 // hash-named, so caching them is safe. Cross-origin (Supabase) calls pass through.
-const CACHE = 'myrun-v9';
+const CACHE = 'myrun-v10';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -25,8 +25,25 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // only handle same-origin app shell
 
-  // Network-first for everything same-origin: always get the latest when online,
-  // cache the response, and fall back to cache (then the shell) when offline.
+  // The app shell (navigations) is always fetched fresh, bypassing the HTTP
+  // cache, so a new deploy shows up on the very next open. Falls back to cache
+  // only when offline.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match('./index.html').then((r) => r || caches.match(req)))
+    );
+    return;
+  }
+
+  // Hash-named assets: network-first, cached for offline.
   event.respondWith(
     fetch(req)
       .then((res) => {
@@ -36,8 +53,6 @@ self.addEventListener('fetch', (event) => {
         }
         return res;
       })
-      .catch(() =>
-        caches.match(req).then((r) => r || (req.mode === 'navigate' ? caches.match('./index.html') : undefined))
-      )
+      .catch(() => caches.match(req))
   );
 });
