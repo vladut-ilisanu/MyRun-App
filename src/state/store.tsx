@@ -58,7 +58,14 @@ interface StoreValue {
 const Ctx = createContext<StoreValue | null>(null);
 
 // --- One-time restore of runs lost to the earlier plan-rebuild bug ---
-const RESTORE_KEY = 'runnapulse.restore.oct2026.v1';
+const RESTORE_KEY = 'runnapulse.restore.oct2026.v2';
+// Planned distances those three sessions actually had (the rest of the plan is
+// the normal generated one). Keyed by date → metres.
+const RESTORE_FIXED_KM: Record<string, number> = {
+  '2026-10-26': 6000, // Mon easy
+  '2026-10-31': 12000, // Sat long run
+  '2026-11-02': 6000, // Mon easy (today)
+};
 const RESTORE_RUNS: { distance_meters: number; duration_seconds: number; local_date: string }[] = [
   { distance_meters: 6120, duration_seconds: 1957, local_date: '2026-10-26' }, // 6.12 km · 32:37
   { distance_meters: 8600, duration_seconds: 2777, local_date: '2026-10-27' }, // 8.60 km · 46:17
@@ -140,6 +147,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!localStorage.getItem(RESTORE_KEY)) {
         const prof: Profile = { ...profile, planStartDate: '2026-10-26', longRunDay: 'Saturday' };
         const plan = generatePlan(prof);
+        // Pin the planned distance of those three past sessions to what they were,
+        // scaling their segments/duration to match (pace unchanged).
+        for (const w of plan.workouts) {
+          const nd = RESTORE_FIXED_KM[w.date];
+          if (nd && w.target_distance_meters > 0 && w.target_distance_meters !== nd) {
+            const ratio = nd / w.target_distance_meters;
+            w.segments = w.segments.map((s) => ({
+              ...s,
+              distance_meters: Math.round(s.distance_meters * ratio),
+            }));
+            w.estimated_duration_seconds = Math.round(w.estimated_duration_seconds * ratio);
+            w.target_distance_meters = nd;
+          }
+        }
         const seeded = RESTORE_RUNS.map((r) => ({
           ...normalizeHealthPayload({
             distance_meters: r.distance_meters,
