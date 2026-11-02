@@ -130,8 +130,9 @@ export function generatePlan(profile: Profile): GeneratedPlan {
   const weeks = classifyWeeks(totalWeeks);
   const peakWeek = weeks.find((w) => w.isPeak)!.week;
 
-  // Terrain: trail / semi-trail plans add hill work and prescribe vertical gain.
-  const isTrail = profile.raceType !== 'Road';
+  // Terrain: hill work + prescribed vertical gain are opt-in (trainWithHills).
+  // The race-day climb is always shown; training stays flat unless hills are on.
+  const trainHills = profile.trainWithHills === true && profile.elevationGainM > 0;
   const elevPerKm = profile.elevationGainM > 0 ? profile.elevationGainM / 42.195 : 0;
 
   // Seeded distances (km).
@@ -193,7 +194,7 @@ export function generatePlan(profile: Profile): GeneratedPlan {
 
     // Quality sessions (never during the taper).
     for (let qi = 0; qi < qualityCount; qi++) {
-      pushQuality(workouts, wc, weekMon, days.quality[qi], qi, weekScale, z, mpBand, isTrail);
+      pushQuality(workouts, wc, weekMon, days.quality[qi], qi, weekScale, z, mpBand, trainHills);
     }
 
     // Easy runs.
@@ -206,16 +207,23 @@ export function generatePlan(profile: Profile): GeneratedPlan {
     }
   }
 
-  // ---- prescribe vertical gain per workout (trail / semi-trail only) ----
-  if (isTrail && elevPerKm > 0) {
-    for (const w of workouts) {
-      const km = w.target_distance_meters / 1000;
-      if (w.type === 'RACE') w.elevation_gain_m = Math.round(profile.elevationGainM);
-      else if (w.type === 'HILLS') w.elevation_gain_m = Math.round(km * elevPerKm * 2.2);
-      else if (w.type === 'LONG RUN') w.elevation_gain_m = Math.round(km * elevPerKm * 1.1);
-      else if (w.type === 'MP') w.elevation_gain_m = Math.round(km * elevPerKm * 0.9);
-      else w.elevation_gain_m = Math.round(km * elevPerKm * 0.7);
+  // ---- vertical gain per workout ----
+  // Race day always shows the course's climb. Training runs only carry prescribed
+  // vertical gain when hill training is enabled; otherwise they stay flat (0).
+  for (const w of workouts) {
+    if (w.type === 'RACE') {
+      w.elevation_gain_m = Math.round(profile.elevationGainM);
+      continue;
     }
+    if (!trainHills) {
+      w.elevation_gain_m = 0;
+      continue;
+    }
+    const km = w.target_distance_meters / 1000;
+    if (w.type === 'HILLS') w.elevation_gain_m = Math.round(km * elevPerKm * 2.2);
+    else if (w.type === 'LONG RUN') w.elevation_gain_m = Math.round(km * elevPerKm * 1.1);
+    else if (w.type === 'MP') w.elevation_gain_m = Math.round(km * elevPerKm * 0.9);
+    else w.elevation_gain_m = Math.round(km * elevPerKm * 0.7);
   }
 
   return { workouts, totalWeeks, paces, vdot };
@@ -378,7 +386,7 @@ function pushQuality(
   deloadScale: number,
   z: ZoneFn,
   mpBand: { min: number; max: number },
-  isTrail: boolean
+  trainHills: boolean
 ) {
   const easy = z('easy');
   const warm = (n: number) =>
@@ -414,7 +422,7 @@ function pushQuality(
   const tempo = z('tempo');
 
   const trailHillSlot =
-    isTrail &&
+    trainHills &&
     qi === 0 &&
     (wc.phase === 'Build I' || wc.phase === 'Build II' || wc.phase === 'Peak');
   const isIntervalSlot = wc.phase === 'Base' || qi === 1 || wc.phase === 'Peak';

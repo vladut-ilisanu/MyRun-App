@@ -108,7 +108,7 @@ export function normalizeHealthPayload(raw: RawHealthPayload): SyncedWorkout {
     distance_meters,
     avg_heart_rate,
     active_calories,
-    source: 'Strava -> Apple Health',
+    source: 'Manual',
     raw_payload: { ...raw },
   };
 }

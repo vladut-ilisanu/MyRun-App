@@ -6,12 +6,12 @@ import { formatFinishTime, formatPaceRange, weekStartMonday } from '../lib/forma
 import type { PaceZone } from '../types';
 
 const zoneColor: Record<PaceZone['key'], string> = {
-  recovery: '#5B5B67',
-  easy: '#3B82F6',
-  long_base: '#22D3EE',
-  marathon_pace: '#7B8CFF',
-  tempo: '#FBBF24',
-  interval: '#A855F7',
+  recovery: '#6A6A78',
+  easy: '#7B8CFF',
+  long_base: '#5BC2D8',
+  marathon_pace: '#8FA0D8',
+  tempo: '#D9A441',
+  interval: '#9B7BE0',
 };
 
 const HARD_SEGMENTS = new Set(['tempo', 'interval', 'hill', 'mp_block']);
@@ -29,7 +29,7 @@ export function ZonesTab() {
   }, [workouts]);
 
   const totalWeeks = workouts.length ? Math.max(...workouts.map((w) => w.week)) : 0;
-  const isTrail = profile.raceType !== 'Road';
+  const showElevation = profile.trainWithHills === true;
 
   const chart = useMemo(() => {
     const rows: { week: number; planned: number; actual: number; elevation: number }[] = [];
@@ -125,7 +125,7 @@ export function ZonesTab() {
               </span>
             </div>
             <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-border">
-              <div className="h-full rounded-full" style={{ width: `${Math.min(100, progress.onTrack)}%`, background: 'linear-gradient(90deg,#6366F1,#A855F7)' }} />
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, progress.onTrack)}%`, background: 'linear-gradient(90deg,#7B8CFF,#5B67CC)' }} />
             </div>
             <div className="mt-2 flex justify-between text-[11px] text-dim">
               <span className="tabular">{progress.actualTotal.toFixed(0)} km logged</span>
@@ -187,17 +187,17 @@ export function ZonesTab() {
       <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">Training intensity · 80/20</h2>
       <div className="card p-4">
         <div className="flex h-5 w-full overflow-hidden rounded-full" style={{ background: '#0c0c14', gap: 2, padding: 2 }}>
-          <div className="rounded-l-full" style={{ width: `${intensity.easyPct}%`, background: '#3B82F6' }} />
-          <div className="rounded-r-full" style={{ width: `${intensity.hardPct}%`, background: '#FBBF24' }} />
+          <div className="rounded-l-full" style={{ width: `${intensity.easyPct}%`, background: '#7B8CFF' }} />
+          <div className="rounded-r-full" style={{ width: `${intensity.hardPct}%`, background: '#D9A441' }} />
         </div>
         <div className="mt-3 flex justify-between text-sm">
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#3B82F6' }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#7B8CFF' }} />
             <span className="font-bold">{intensity.easyPct}%</span>
             <span className="text-dim">easy</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#FBBF24' }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#D9A441' }} />
             <span className="font-bold">{intensity.hardPct}%</span>
             <span className="text-dim">quality</span>
           </span>
@@ -252,7 +252,7 @@ export function ZonesTab() {
             <span className="tabular text-dim">
               <span className="text-mint">{sel.planned.toFixed(0)}</span> planned ·{' '}
               <span className="text-cyan">{sel.actual.toFixed(0)}</span> actual km
-              {isTrail ? ` · ${sel.elevation} m` : ''}
+              {showElevation ? ` · ${sel.elevation} m` : ''}
             </span>
           </div>
         ) : (
@@ -273,11 +273,11 @@ export function ZonesTab() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[11px] text-dim">Peak ~{Math.round(maxKm)} km/week. Prescribed vs. logged from Apple Health.</p>
+        <p className="mt-2 text-[11px] text-dim">Peak ~{Math.round(maxKm)} km/week. Planned vs. your logged runs.</p>
       </div>
 
-      {/* Elevation chart (trail / semi-trail) */}
-      {isTrail && (
+      {/* Elevation chart (only when hill training is enabled) */}
+      {showElevation && (
         <>
           <h2 className="mb-2 mt-7 text-xs font-bold uppercase tracking-wider text-dim">
             Weekly elevation · {profile.raceType}

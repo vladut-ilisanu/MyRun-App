@@ -136,11 +136,59 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 /* ---- reusable surfaces ---- */
+/* Calm, near-flat card: a single quiet fill + hairline border. Depth comes from
+   spacing and hierarchy, not heavy gradients/shadows. */
 .card {
-  background: linear-gradient(180deg, #18181f 0%, #131320 100%);
-  border: 1px solid #272734;
+  background: #14141c;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 1.25rem;
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -18px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- typographic system (one scale, applied everywhere) ---- */
+/* Small all-caps context label above a block. */
+.overline {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8a98;
+}
+/* Big glanceable metric. */
+.display {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+/* Hairline section divider. */
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+/* Primary action button — the single, obvious accent CTA. */
+.btn-primary {
+  background: #7b8cff;
+  color: #0a0a12;
+  font-weight: 700;
+  border-radius: 1rem;
+  transition: transform 160ms var(--ease-out), background 160ms ease;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+  background: #8f9dff;
+}
+/* Quiet secondary button. */
+.btn-ghost {
+  background: transparent;
+  color: #e6e6ee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  font-weight: 600;
+  transition: transform 160ms var(--ease-out), background 160ms ease;
+}
+.btn-ghost:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ---- press feedback on any pressable ---- */

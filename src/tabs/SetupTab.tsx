@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Copy, Check, Play, RefreshCw, Database, Smartphone, UserRound, LogOut, Mail, Trash2 } from 'lucide-react';
+import { Copy, Check, RefreshCw, Database, UserRound, LogOut, Mail } from 'lucide-react';
 import { useStore } from '../state/store';
 import { storage } from '../lib/storage';
 import { testConnection, type ConnectionResult } from '../lib/supabaseClient';
 import { SCHEMA_SQL } from '../lib/schemaSql';
-import { toISODate, formatPace } from '../lib/format';
+import { formatPace } from '../lib/format';
 import { Slider } from '../components/Slider';
 import type { Profile, RaceDistance, RaceType } from '../types';
 
@@ -46,7 +46,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 const DISTANCES: RaceDistance[] = ['5K', '10K', 'Half Marathon', 'Marathon'];
 
 export function SetupTab() {
-  const { profile, regenerate, simulateRun, clearSimulated, hasSimulated, refreshSupabaseStatus, user, signIn, signUp, signInMagic, signOut, supabaseConfigured } = useStore();
+  const { profile, regenerate, refreshSupabaseStatus, user, signIn, signUp, signInMagic, signOut, supabaseConfigured } = useStore();
 
   // Account form
   const [acctEmail, setAcctEmail] = useState('');
@@ -75,11 +75,6 @@ export function SetupTab() {
   const [conn, setConn] = useState<ConnectionResult | null>(null);
   const [testing, setTesting] = useState(false);
 
-  const [simDist, setSimDist] = useState('21.1');
-  const [simMin, setSimMin] = useState('110');
-  const [simDate, setSimDate] = useState(toISODate(new Date()));
-  const [simMsg, setSimMsg] = useState('');
-
   const update = <K extends keyof Profile>(key: K, value: Profile[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -106,28 +101,6 @@ export function SetupTab() {
     setConn(await testConnection());
     setTesting(false);
   };
-
-  const onSimulate = async () => {
-    const km = Number(simDist.replace(',', '.'));
-    const sec = (Number(simMin) || 0) * 60;
-    if (!km || !sec) {
-      setSimMsg('Enter a distance and duration.');
-      return;
-    }
-    await simulateRun(km, sec, simDate);
-    setSimMsg(`Test run added (${km} km on ${simDate}) — check Today/Calendar. Test only: it clears on refresh.`);
-    setTimeout(() => setSimMsg(''), 3000);
-  };
-
-  const cleanUrl = supaUrl.trim().replace(/\/+$/, '');
-  const postUrl = `${cleanUrl || 'https://YOUR_PROJECT.supabase.co'}/rest/v1/synced_workouts?on_conflict=external_id`;
-  const keyShown = supaKey || 'YOUR_SUPABASE_ANON_KEY';
-  const payload = `{
-  "local_date": "[Workouts > Start Date, ISO 8601, time off]",
-  "duration_seconds": "[Workouts > Duration in seconds]",
-  "distance_meters": "[Workouts > Distance]",
-  "external_id": "[Start Date]_[Distance]_[Duration]"
-}`;
 
   const input =
     'mt-1 w-full rounded-xl bg-bg px-3 py-2.5 text-sm outline-none transition-colors focus:border-mint';
@@ -188,7 +161,7 @@ export function SetupTab() {
                   onClick={() => void doAuth(() => signIn(acctEmail, acctPass))}
                   disabled={acctBusy}
                   className="press flex-1 rounded-xl py-2.5 text-sm font-bold text-black disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+                  style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
                 >
                   Sign in
                 </button>
@@ -249,15 +222,41 @@ export function SetupTab() {
             </div>
           </div>
           {form.raceType !== 'Road' && (
-            <div className={label}>
-              <div className="flex items-baseline justify-between">
-                <span>Total elevation gain</span>
-                <span className="tabular text-base font-bold text-mint">{form.elevationGainM} m</span>
+            <>
+              <div className={label}>
+                <div className="flex items-baseline justify-between">
+                  <span>Total elevation gain</span>
+                  <span className="tabular text-base font-bold text-mint">{form.elevationGainM} m</span>
+                </div>
+                <div className="mt-2">
+                  <Slider value={form.elevationGainM} min={0} max={3000} step={50} onChange={(v) => update('elevationGainM', v)} />
+                </div>
               </div>
-              <div className="mt-2">
-                <Slider value={form.elevationGainM} min={0} max={3000} step={50} onChange={(v) => update('elevationGainM', v)} />
+              <div className={label}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div>Train with hills</div>
+                    <div className="mt-0.5 text-[11px] leading-snug text-dim">
+                      Off = flat training (no hill reps or vertical targets). Your race-day climb
+                      still shows. Recommended when your race is mostly flat.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.trainWithHills}
+                    onClick={() => update('trainWithHills', !form.trainWithHills)}
+                    className="press relative h-7 w-12 shrink-0 rounded-full transition-colors"
+                    style={{ background: form.trainWithHills ? '#7B8CFF' : '#272734' }}
+                  >
+                    <span
+                      className="absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform"
+                      style={{ transform: form.trainWithHills ? 'translateX(22px)' : 'translateX(2px)' }}
+                    />
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <div className={label}>
@@ -345,62 +344,26 @@ export function SetupTab() {
           <button
             onClick={onRegenerate}
             className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
           >
             <RefreshCw size={16} strokeWidth={2.6} /> Regenerate Plan
           </button>
         </div>
       </section>
 
-      {/* Simulate / Test the pipeline */}
-      <section className="mt-7">
-        <h2 className={sectionTitle}>Test the pipeline</h2>
-        <div className="card space-y-3 p-4">
-          <div className="flex gap-2">
-            <label className={`${label} flex-1`}>
-              Distance (km)
-              <input className={input} style={inputStyle} value={simDist} onChange={(e) => setSimDist(e.target.value)} inputMode="decimal" />
-            </label>
-            <label className={`${label} flex-1`}>
-              Duration (min)
-              <input className={input} style={inputStyle} value={simMin} onChange={(e) => setSimMin(e.target.value)} inputMode="numeric" />
-            </label>
-          </div>
-          <label className={label}>
-            Date
-            <input type="date" className={input} style={inputStyle} value={simDate} onChange={(e) => setSimDate(e.target.value)} />
-          </label>
-          <button
-            onClick={() => void onSimulate()}
-            className="press flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-mint"
-            style={{ background: 'rgba(123,140,255,0.12)', border: '1px solid rgba(123,140,255,0.4)' }}
-          >
-            <Play size={16} /> Simulate Apple Health Run
-          </button>
-          {hasSimulated && (
-            <button
-              onClick={() => {
-                clearSimulated();
-                setSimMsg('');
-              }}
-              className="press flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-amber"
-              style={{ border: '1px solid rgba(251,191,36,0.4)' }}
-            >
-              <Trash2 size={15} /> Clear test run
-            </button>
-          )}
-          {simMsg && <div className="text-xs font-medium text-mint">{simMsg}</div>}
-        </div>
-      </section>
-
-      {/* Supabase */}
+      {/* Cloud backup (optional) */}
       <section className="mt-7">
         <h2 className={sectionTitle}>
           <span className="inline-flex items-center gap-1.5">
-            <Database size={13} /> Cloud sync (Supabase)
+            <Database size={13} /> Cloud backup (optional)
           </span>
         </h2>
         <div className="card space-y-3 p-4">
+          <p className="text-xs leading-relaxed text-dim">
+            Your plan and runs live on this device. Connecting Supabase and signing in backs them
+            up so they survive a cleared cache or a new device. Entirely optional — the app works
+            fully offline without it.
+          </p>
           <label className={label}>
             Project URL
             <input className={input} style={inputStyle} placeholder="https://xxxx.supabase.co" value={supaUrl} onChange={(e) => setSupaUrl(e.target.value)} />
@@ -432,34 +395,6 @@ export function SetupTab() {
         </div>
       </section>
 
-      {/* iOS Shortcut */}
-      <section className="mt-7">
-        <h2 className={sectionTitle}>
-          <span className="inline-flex items-center gap-1.5">
-            <Smartphone size={13} /> iOS Shortcut — Get Contents of URL
-          </span>
-        </h2>
-        <div className="card space-y-3 p-4 text-xs">
-          <Field label="URL (POST)" value={postUrl} />
-          <div className="rounded-xl bg-bg p-3" style={inputStyle}>
-            <div className="mb-2 font-bold text-white/70">Headers</div>
-            <HeaderRow k="apikey" v={keyShown} />
-            <HeaderRow k="Authorization" v={`Bearer ${keyShown}`} />
-            <HeaderRow k="Content-Type" v="application/json" />
-            <HeaderRow k="Prefer" v="resolution=merge-duplicates" />
-          </div>
-          <div className="rounded-xl bg-bg p-3" style={inputStyle}>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-bold text-white/70">Request body (JSON)</span>
-              <CopyButton text={payload} />
-            </div>
-            <pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-white/70">
-              {payload}
-            </pre>
-          </div>
-        </div>
-      </section>
-
       <button
         onClick={() => {
           if (
@@ -480,31 +415,6 @@ export function SetupTab() {
       <p className="mt-5 text-center text-[11px] text-dim">
         MyRun v9 · your data lives on this device; Supabase is an optional cloud backup.
       </p>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-bg p-3" style={{ border: '1px solid #242430' }}>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="font-bold text-white/70">{label}</span>
-        <CopyButton text={value} />
-      </div>
-      <div className="break-all font-mono text-[11px] text-white/70">{value}</div>
-    </div>
-  );
-}
-
-function HeaderRow({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="mb-1.5 flex items-center justify-between gap-2">
-      <div className="min-w-0 flex-1 break-all">
-        <span className="text-mint">{k}</span>
-        <span className="text-white/40"> : </span>
-        <span className="font-mono text-white/70">{v}</span>
-      </div>
-      <CopyButton text={v} label="" />
     </div>
   );
 }

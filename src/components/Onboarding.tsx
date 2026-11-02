@@ -85,7 +85,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
             <div
               className="grid h-20 w-20 place-items-center rounded-3xl"
-              style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+              style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
             >
               <Activity size={40} color="#061012" strokeWidth={2.5} />
             </div>
@@ -145,21 +145,44 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             </div>
 
             {draft.raceType !== 'Road' && (
-              <div className="mt-6">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-sm font-medium text-dim">Total elevation gain</span>
-                  <span className="tabular text-2xl font-extrabold text-mint">
-                    {draft.elevationGainM} m
-                  </span>
+              <>
+                <div className="mt-6">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-medium text-dim">Total elevation gain</span>
+                    <span className="tabular text-2xl font-extrabold text-mint">
+                      {draft.elevationGainM} m
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <Slider value={draft.elevationGainM} min={0} max={3000} step={50} onChange={(v) => set('elevationGainM', v)} />
+                  </div>
+                  <div className="mt-1 flex justify-between text-[11px] text-dim">
+                    <span>0 m</span>
+                    <span>3000 m</span>
+                  </div>
                 </div>
-                <div className="mt-3">
-                  <Slider value={draft.elevationGainM} min={0} max={3000} step={50} onChange={(v) => set('elevationGainM', v)} />
+                <div className="mt-5 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium">Train with hills</div>
+                    <div className="mt-0.5 text-[11px] leading-snug text-dim">
+                      Off = flat training. Your race-day climb still shows.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={draft.trainWithHills}
+                    onClick={() => set('trainWithHills', !draft.trainWithHills)}
+                    className="press relative h-7 w-12 shrink-0 rounded-full transition-colors"
+                    style={{ background: draft.trainWithHills ? '#7B8CFF' : '#272734' }}
+                  >
+                    <span
+                      className="absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform"
+                      style={{ transform: draft.trainWithHills ? 'translateX(22px)' : 'translateX(2px)' }}
+                    />
+                  </button>
                 </div>
-                <div className="mt-1 flex justify-between text-[11px] text-dim">
-                  <span>0 m</span>
-                  <span>3000 m</span>
-                </div>
-              </div>
+              </>
             )}
           </Q>
         )}
@@ -302,7 +325,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
             onClick={() => canNext() && setStep((s) => s + 1)}
             disabled={!canNext()}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
           >
             {step === 0 ? 'Get started' : 'Continue'} <ArrowRight size={18} strokeWidth={2.6} />
           </button>
@@ -310,7 +333,7 @@ export function Onboarding({ onComplete }: { onComplete: (p: Profile) => void })
           <button
             onClick={finish}
             className="press flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-black"
-            style={{ background: 'linear-gradient(135deg, #6366F1, #A855F7)' }}
+            style={{ background: 'linear-gradient(135deg, #7B8CFF, #5B67CC)' }}
           >
             <Check size={18} strokeWidth={2.6} /> Build my plan
           </button>

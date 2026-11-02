@@ -84,6 +84,7 @@ export const DEFAULT_PROFILE: Profile = {
   goalRaceDate: '2027-02-06',
   raceType: 'Road',
   elevationGainM: 0,
+  trainWithHills: false,
   recentRaceDistance: 'Half Marathon',
   recentRaceTimeSeconds: 1 * 3600 + 50 * 60, // 1:50:00 — editable in Setup
   goalFinishTimeSeconds: null,

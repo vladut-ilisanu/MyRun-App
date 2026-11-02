@@ -40,6 +40,8 @@ export function KnowledgeTab() {
   }, [workouts]);
 
   const isTrail = profile.raceType !== 'Road';
+  const trainHills = profile.trainWithHills === true;
+  const flatForHilly = isTrail && !trainHills && profile.elevationGainM > 0;
 
   const sections: Section[] = [
     {
@@ -58,7 +60,7 @@ export function KnowledgeTab() {
           </P>
           <UL>
             <li><b>Base</b> — build aerobic volume and running economy.</li>
-            <li><b>Build I & II</b> — add threshold, VO2 work{isTrail ? ', hill strength' : ''} and race-specific pace.</li>
+            <li><b>Build I & II</b> — add threshold, VO2 work{trainHills ? ', hill strength' : ''} and race-specific pace.</li>
             <li><b>Peak (week {stats.peakWeek})</b> — highest volume and your longest run (~{metersToKm(stats.peakLong)} km).</li>
             <li><b>Taper (final 3 weeks)</b> — volume drops hard so you arrive fresh; the last 2 weeks are easy recovery running.</li>
             <li><b>Deload weeks</b> ({stats.deloads.join(', ') || '—'}) cut ~22% to let tissue adapt (3:1 rhythm).</li>
@@ -88,7 +90,7 @@ export function KnowledgeTab() {
             Three weeks of progressive load then one easier “deload” week. You adapt during the easy
             weeks, not the hard ones — stacking hard weeks endlessly leads to injury and burnout.
           </P>
-          {isTrail && (
+          {trainHills && (
             <>
               <H>Trail specificity</H>
               <P>
@@ -96,6 +98,23 @@ export function KnowledgeTab() {
                 repeats for leg strength and prescribes vertical gain on your runs, so race-day
                 climbs and descents feel familiar.
               </P>
+            </>
+          )}
+          {flatForHilly && (
+            <>
+              <H>Flat training for a {profile.elevationGainM} m race</H>
+              <P>
+                You’re training flat, so the plan prescribes no hill reps or vertical targets —
+                paces and analysis ignore elevation. Over {profile.elevationGainM} m across the
+                marathon that’s gentle, rolling ground (~{Math.round(profile.elevationGainM / 42.195)} m
+                per km), and your threshold and VO₂ work transfers fine. Three things make race day
+                safe without hill training:
+              </P>
+              <UL>
+                <li><b>Run the climbs by effort, not pace</b> — ease off and keep your cadence; don’t chase your flat pace uphill.</li>
+                <li><b>Rehearse the downhills</b> — the descents pound your quads harder than the climbs. In your last ~6 weeks, add a few gentle downhill stretches to long runs so your legs aren’t shocked on the day.</li>
+                <li><b>Strength instead of hills</b> — squats, lunges and calf raises twice a week cover the leg-strength that hill repeats would have built.</li>
+              </UL>
             </>
           )}
         </>
@@ -236,17 +255,26 @@ export function KnowledgeTab() {
       ),
     },
     {
-      id: 'sync',
+      id: 'logging',
       icon: RefreshCw,
-      title: 'How tracking works',
+      title: 'Logging your runs',
       body: (
         <>
           <P>
-            Record a run in Strava → it writes to Apple Health → an iOS Shortcut posts it to your
-            database → this app pulls it and matches it to the right session, even if you swapped
-            days. Hit <b>Sync Health</b> on Today, or edit/move sessions in the Calendar anytime.
+            After a run, tap <b>Log this run</b> on Today (it pre-fills the planned distance and
+            time — just adjust to what you actually did), or <b>Log a run</b> for anything
+            off-plan. The app matches it to the right session automatically, even if you swapped
+            days, and updates your stats.
           </P>
-          <P>Your plan and runs are stored on your device; the cloud copy is just a backup.</P>
+          <P>
+            Enter distance to <b>two decimals</b> (e.g. 6.24 km) so your pace is exact. For
+            interval sessions, the pace shown is your <i>overall</i> average including recovery
+            walks, so it reads slower than your rep pace.
+          </P>
+          <P>
+            Everything is stored on your device. Signing in (Setup → Cloud backup) keeps an
+            optional backup so nothing is lost if your browser clears its storage.
+          </P>
         </>
       ),
     },

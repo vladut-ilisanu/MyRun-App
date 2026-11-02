@@ -15,7 +15,6 @@ import { matchRun } from '../lib/workoutMatcher';
 import { DEFAULT_PROFILE, storage } from '../lib/storage';
 import {
   backupPlan,
-  fetchSyncedWorkouts,
   fetchUserPlan,
   isConfigured,
   getCurrentUser,
@@ -30,9 +29,6 @@ import {
 import { normalizeHealthPayload } from '../lib/workoutMatcher';
 import { toISODate, mondayIndex, parseISODate } from '../lib/format';
 
-/** Runs created by the "Simulate" tester are tagged with this and never persist. */
-const SIM_SOURCE = 'Simulated (test)';
-
 interface StoreValue {
   profile: Profile;
   workouts: PlannedWorkout[];
@@ -40,8 +36,6 @@ interface StoreValue {
   paces: TrainingPaces;
   vdot: number;
   totalWeeks: number;
-  syncing: boolean;
-  lastSynced: string | null;
   supabaseConfigured: boolean;
   onboarded: boolean;
   user: AuthUser | null;
@@ -51,10 +45,6 @@ interface StoreValue {
   signOut: () => Promise<void>;
   completeOnboarding: (p: Profile) => void;
   regenerate: (p: Profile) => void;
-  syncHealth: () => Promise<void>;
-  simulateRun: (distanceKm: number, durationSeconds: number, dateISO: string) => Promise<void>;
-  clearSimulated: () => void;
-  hasSimulated: boolean;
   addManualRun: (distanceKm: number, durationSeconds: number, dateISO: string) => void;
   logRunForWorkout: (workoutId: string, distanceKm: number, durationSeconds: number) => void;
   updateRun: (externalId: string, distanceKm: number, durationSeconds: number, dateISO: string) => void;
@@ -107,18 +97,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ...DEFAULT_PROFILE,
     ...(storage.loadProfile() ?? {}),
   }));
-  // Simulated test runs are never persisted across a refresh.
-  const [synced, setSynced] = useState<SyncedWorkout[]>(() =>
-    storage.loadSynced().filter((r) => r.source !== SIM_SOURCE)
-  );
+  const [synced, setSynced] = useState<SyncedWorkout[]>(() => storage.loadSynced());
   const [workouts, setWorkouts] = useState<PlannedWorkout[]>(() => {
     const w = storage.loadWorkouts();
     if (!w.length) return w;
-    const real = storage.loadSynced().filter((r) => r.source !== SIM_SOURCE);
-    return applyMatching(w, real).workouts; // recompute completions from real runs only
+    return applyMatching(w, storage.loadSynced()).workouts; // recompute completions from runs
   });
-  const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [supabaseConfigured, setSupabaseConfigured] = useState<boolean>(() => isConfigured());
   const [onboarded, setOnboardedState] = useState<boolean>(() => storage.loadOnboarded());
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -135,12 +119,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const didInit = useRef(false);
 
-  // Rebuild the plan only for a returning (already-onboarded) user whose stored
-  // workouts were lost (e.g. iOS cache eviction). New users see onboarding first.
+  // On load, rebuild the plan for a returning user when it's missing (e.g. iOS
+  // cache eviction) OR stale vs the current settings — specifically, when hill
+  // training is off but the stored plan still carries hill reps / vertical gain
+  // (a plan generated before the flat-training change). Logged runs are preserved
+  // by applyMatching, so this never deletes history. New users onboard first.
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    if (onboarded && workouts.length === 0) {
+    if (!onboarded) return;
+
+    const staleHills =
+      !profile.trainWithHills &&
+      workouts.some((w) => w.type === 'HILLS' || (w.type !== 'RACE' && w.elevation_gain_m > 0));
+
+    if (workouts.length === 0 || staleHills) {
       const plan = generatePlan(profile);
       const matched = applyMatching(plan.workouts, synced);
       setWorkouts(matched.workouts);
@@ -208,54 +201,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [synced, workouts, commit]
   );
 
-  const syncHealth = useCallback(async () => {
-    setSyncing(true);
-    const start = Date.now();
-    try {
-      const remote = await fetchSyncedWorkouts();
-      if (remote.length > 0) ingest(remote.map((r) => ({ ...r })));
-      setLastSynced(new Date().toISOString());
-    } finally {
-      // Keep the spinner visible long enough to register as feedback.
-      const elapsed = Date.now() - start;
-      if (elapsed < 750) await new Promise((r) => setTimeout(r, 750 - elapsed));
-      setSyncing(false);
-    }
-  }, [ingest]);
-
-  // A simulated run is TEST-ONLY: shown in memory so you can see the pipeline
-  // work, tagged SIM_SOURCE and never persisted — it clears on the next refresh.
-  const simulateRun = useCallback(
-    async (distanceKm: number, durationSeconds: number, dateISO: string) => {
-      const run: SyncedWorkout = {
-        ...normalizeHealthPayload({
-          distance: distanceKm,
-          duration_seconds: durationSeconds,
-          local_date: dateISO,
-          start_time: `${dateISO}T08:00:00`,
-          avg_heart_rate: 152,
-          active_calories: Math.round(distanceKm * 62),
-        }),
-        source: SIM_SOURCE,
-      };
-      const merged = dedupeByExternalId([...synced, run]);
-      const matched = applyMatching(workouts, merged);
-      setWorkouts(matched.workouts); // in-memory only — not saved to storage/cloud
-      setSynced(matched.synced);
-      setLastSynced(new Date().toISOString());
-    },
-    [synced, workouts]
-  );
-
-  // Remove any simulated test runs immediately (in-memory, matches recomputed).
-  const clearSimulated = useCallback(() => {
-    const real = synced.filter((r) => r.source !== SIM_SOURCE);
-    const matched = applyMatching(workouts, real);
-    setWorkouts(matched.workouts);
-    setSynced(matched.synced);
-  }, [synced, workouts]);
-
-  // Manually log a real run (persists; matches to the plan like a synced run).
+  // Manually log a real run (persists; matches to the plan).
   const addManualRun = useCallback(
     (distanceKm: number, durationSeconds: number, dateISO: string) => {
       const run: SyncedWorkout = {
@@ -419,8 +365,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     paces,
     vdot: paces.vdot,
     totalWeeks,
-    syncing,
-    lastSynced,
     supabaseConfigured,
     onboarded,
     user,
@@ -430,10 +374,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signOut,
     completeOnboarding,
     regenerate,
-    syncHealth,
-    simulateRun,
-    clearSimulated,
-    hasSimulated: synced.some((r) => r.source === SIM_SOURCE),
     addManualRun,
     logRunForWorkout,
     updateRun,

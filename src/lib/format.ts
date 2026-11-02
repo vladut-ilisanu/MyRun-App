@@ -37,8 +37,15 @@ export function formatFinishTime(seconds: number): string {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function metersToKm(m: number, digits = 1): string {
-  return (m / 1000).toFixed(digits);
+/**
+ * Metres → km string. With an explicit `digits`, fixed decimals (back-compat).
+ * Without, a "smart" format: up to 2 decimals with trailing zeros trimmed, so a
+ * 6.24 km run reads "6.24" (exact for pace) while a round 7 km reads "7".
+ */
+export function metersToKm(m: number, digits?: number): string {
+  const km = m / 1000;
+  if (digits == null) return String(Math.round(km * 100) / 100);
+  return km.toFixed(digits);
 }
 
 // ---- Date helpers (all local-date, ISO YYYY-MM-DD) -----------------------

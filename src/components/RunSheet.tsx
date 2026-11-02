@@ -28,8 +28,11 @@ export function RunSheet({
   const [date, setDate] = useState(run.local_date);
   const pace = movingPaceSecPerKm(run.duration_seconds, run.distance_meters);
   const comp = matched ? evaluateCompliance(run, matched) : null;
-  const g1 = '#22D3EE';
-  const g2 = '#3B82F6';
+  const hasRecoveries = !!matched?.segments.some(
+    (s) => (s.reps ?? 0) > 1 && (s.rest_seconds ?? 0) > 0
+  );
+  const g1 = '#7B8CFF';
+  const g2 = '#5B67CC';
   const isSim = run.source && run.source.includes('Simulated');
 
   return (
@@ -60,7 +63,7 @@ export function RunSheet({
         <div className="flex-1 overflow-y-auto px-5 pb-nav">
           {/* Metric tiles */}
           <div className="grid grid-cols-2 gap-3">
-            <Metric icon={<TrendingUp size={15} />} label="Moving pace" value={formatPace(pace)} />
+            <Metric icon={<TrendingUp size={15} />} label="Avg pace" value={formatPace(pace)} />
             <Metric icon={<Clock size={15} />} label="Duration" value={formatDuration(run.duration_seconds)} />
             {run.avg_heart_rate ? (
               <Metric icon={<Heart size={15} className="text-pink" />} label="Avg heart rate" value={`${Math.round(run.avg_heart_rate)} bpm`} />
@@ -69,6 +72,13 @@ export function RunSheet({
               <Metric icon={<Flame size={15} className="text-orange" />} label="Active calories" value={`${Math.round(run.active_calories)} kcal`} />
             ) : null}
           </div>
+
+          {hasRecoveries && (
+            <p className="mt-3 rounded-xl bg-white/5 p-3 text-[11px] leading-relaxed text-white/55">
+              This is your <b className="text-white/80">overall</b> average pace — it includes the
+              recovery walks/jogs between reps, so it reads slower than your actual rep pace.
+            </p>
+          )}
 
           {/* Matched workout */}
           <div className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-dim">
@@ -137,7 +147,7 @@ export function RunSheet({
                         setEditing(false);
                       }}
                       className="press flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-black"
-                      style={{ background: 'linear-gradient(135deg,#22D3EE,#3B82F6)' }}
+                      style={{ background: 'linear-gradient(135deg,#7B8CFF,#5B67CC)' }}
                     >
                       <Check size={15} /> Save
                     </button>

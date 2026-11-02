@@ -71,7 +71,8 @@ export interface Profile {
   goalRaceName: string;
   goalRaceDate: string; // YYYY-MM-DD
   raceType: RaceType;
-  elevationGainM: number; // total ascent of the goal race
+  elevationGainM: number; // total ascent of the goal race (shown on race day)
+  trainWithHills: boolean; // prescribe hill reps + vertical gain in training; off = flat training
   recentRaceDistance: RaceDistance;
   recentRaceTimeSeconds: number;
   goalFinishTimeSeconds: number | null;

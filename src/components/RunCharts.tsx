@@ -13,8 +13,7 @@ export function RunCharts({ synced }: { synced: SyncedWorkout[] }) {
   if (runs.length === 0) {
     return (
       <div className="card p-5 text-sm text-dim">
-        Log runs — via Strava sync or “Simulate run” in Setup — to see your pace trend, distance
-        and heart-rate graphs here.
+        Log your runs to see your pace trend, distance and heart-rate graphs here.
       </div>
     );
   }

@@ -25,6 +25,9 @@ export function WorkoutSheet({
   onLogRun,
 }: Props) {
   const linked = weekRuns.find((r) => r.external_id === workout.matched_synced_id);
+  const hasRecoveries = workout.segments.some(
+    (s) => (s.reps ?? 0) > 1 && (s.rest_seconds ?? 0) > 0
+  );
   const [g1, g2] = typeGradient[workout.type];
   const [logKm, setLogKm] = useState(metersToKm(workout.target_distance_meters, 2));
   const [logMin, setLogMin] = useState(String(Math.floor(workout.estimated_duration_seconds / 60)));
@@ -120,7 +123,8 @@ export function WorkoutSheet({
             <div className="card flex items-center justify-between p-4">
               <span className="tabular text-sm">
                 {metersToKm(linked.distance_meters)} km ·{' '}
-                {formatPace(movingPaceSecPerKm(linked.duration_seconds, linked.distance_meters))} ·{' '}
+                {formatPace(movingPaceSecPerKm(linked.duration_seconds, linked.distance_meters))}
+                {hasRecoveries ? ' avg*' : ''} ·{' '}
                 {linked.local_date}
               </span>
               <button
@@ -155,6 +159,14 @@ export function WorkoutSheet({
                   ))
               )}
             </div>
+          )}
+
+          {hasRecoveries && (
+            <p className="mt-2 text-[11px] leading-relaxed text-white/45">
+              *Overall average pace, including your recovery walks/jogs between reps — your actual
+              rep pace is faster. The app can’t separate reps from recoveries (it only has your
+              total time and distance).
+            </p>
           )}
 
           {/* Log your actual run */}
