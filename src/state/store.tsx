@@ -57,6 +57,15 @@ interface StoreValue {
 
 const Ctx = createContext<StoreValue | null>(null);
 
+// --- One-time restore of runs lost to the earlier plan-rebuild bug ---
+const RESTORE_KEY = 'runnapulse.restore.oct2026.v1';
+const RESTORE_RUNS: { distance_meters: number; duration_seconds: number; local_date: string }[] = [
+  { distance_meters: 6120, duration_seconds: 1957, local_date: '2026-10-26' }, // 6.12 km · 32:37
+  { distance_meters: 8600, duration_seconds: 2777, local_date: '2026-10-27' }, // 8.60 km · 46:17
+  { distance_meters: 12050, duration_seconds: 3900, local_date: '2026-10-31' }, // 12.05 km · 1:05:00
+  { distance_meters: 6230, duration_seconds: 2004, local_date: '2026-11-02' }, // 6.23 km · 33:24
+];
+
 /** Re-run the matcher across all synced runs (oldest first) over a fresh plan copy. */
 function applyMatching(
   workouts: PlannedWorkout[],
@@ -119,14 +128,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const didInit = useRef(false);
 
-  // Rebuild the plan ONLY for a returning user whose stored workouts were lost
-  // (e.g. cache eviction). Never auto-regenerate an existing plan — that would
-  // shift its start forward and un-link already-completed runs. The plan only
-  // changes when the user taps "Regenerate Plan". New users onboard first.
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    if (onboarded && workouts.length === 0) {
+    if (!onboarded) return;
+
+    // One-time restore of the runs lost to the earlier plan-rebuild bug. Pins the
+    // plan start to Mon 26 Oct 2026 (so past weeks exist again) and re-logs the
+    // four runs, matched to their sessions. Guarded by a flag so it runs once.
+    try {
+      if (!localStorage.getItem(RESTORE_KEY)) {
+        const prof: Profile = { ...profile, planStartDate: '2026-10-26', longRunDay: 'Saturday' };
+        const plan = generatePlan(prof);
+        const seeded = RESTORE_RUNS.map((r) => ({
+          ...normalizeHealthPayload({
+            distance_meters: r.distance_meters,
+            duration_seconds: r.duration_seconds,
+            local_date: r.local_date,
+            start_time: `${r.local_date}T08:00:00`,
+          }),
+          source: 'Manual',
+        }));
+        const merged = dedupeByExternalId([...synced, ...seeded]);
+        const matched = applyMatching(plan.workouts, merged);
+        setProfile(prof);
+        setWorkouts(matched.workouts);
+        setSynced(matched.synced);
+        storage.saveProfile(prof);
+        storage.saveWorkouts(matched.workouts);
+        storage.saveSynced(matched.synced);
+        localStorage.setItem(RESTORE_KEY, '1');
+        return;
+      }
+    } catch {
+      /* storage blocked — fall through to the normal rebuild */
+    }
+
+    // Otherwise rebuild the plan only when stored workouts were lost (cache
+    // eviction). Never auto-regenerate an existing plan.
+    if (workouts.length === 0) {
       const plan = generatePlan(profile);
       const matched = applyMatching(plan.workouts, synced);
       setWorkouts(matched.workouts);
